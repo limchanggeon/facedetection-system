@@ -254,6 +254,101 @@ class SettingsScreen(tk.Frame):
         )
         self.camera_status.pack()
         
+        # 얼굴 감지기 설정 ⭐ NEW
+        detector_frame = tk.LabelFrame(
+            scrollable_frame,
+            text=" 얼굴 감지 엔진 선택 ",
+            font=("Arial", 16, "bold"),
+            bg="#ecf0f1",
+            fg="#2c3e50",
+            padx=20,
+            pady=20
+        )
+        detector_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        tk.Label(
+            detector_frame,
+            text="사용할 얼굴 감지 엔진을 선택하세요:",
+            font=("Arial", 12),
+            bg="#ecf0f1"
+        ).pack(anchor=tk.W, pady=5)
+        
+        # 현재 사용 가능한 감지기 확인
+        available_detectors = self._check_available_detectors()
+        
+        # 기본값 설정 (설정에 없으면 'auto')
+        if 'detector_type' not in self.manager.settings:
+            self.manager.settings['detector_type'] = 'auto'
+        
+        self.detector_var = tk.StringVar(value=self.manager.settings['detector_type'])
+        
+        # 감지기 옵션
+        detectors = [
+            ("자동 선택 (RetinaFace → YOLO → HOG)", "auto", "🤖"),
+            ("RetinaFace (최고 정확도, 작은 얼굴)", "retinaface", "🏆"),
+            ("YOLO-Face (최고 속도, GPU 가속)", "yolo", "⚡"),
+            ("HOG (기본 내장, 간단함)", "hog", "🔧"),
+        ]
+        
+        for text, value, emoji in detectors:
+            # 사용 가능한지 확인
+            if value == 'auto' or value in available_detectors:
+                status = "✅"
+            else:
+                status = "❌"
+            
+            radio = tk.Radiobutton(
+                detector_frame,
+                text=f"{emoji} {text} {status}",
+                variable=self.detector_var,
+                value=value,
+                font=("Arial", 11),
+                bg="#ecf0f1",
+                state=tk.NORMAL if (value == 'auto' or value in available_detectors) else tk.DISABLED
+            )
+            radio.pack(anchor=tk.W, padx=20, pady=5)
+        
+        # 현재 감지기 상태 표시
+        self.detector_status = tk.Label(
+            detector_frame,
+            text="",
+            font=("Arial", 10, "bold"),
+            bg="#ecf0f1",
+            fg="#2980b9"
+        )
+        self.detector_status.pack(pady=10)
+        self._update_detector_status()
+        
+        # 설치 안내
+        install_info = tk.Frame(detector_frame, bg="#ecf0f1")
+        install_info.pack(fill=tk.X, pady=10)
+        
+        tk.Label(
+            install_info,
+            text="💡 설치 방법:",
+            font=("Arial", 10, "bold"),
+            bg="#ecf0f1",
+            fg="#7f8c8d"
+        ).pack(anchor=tk.W)
+        
+        if 'retinaface' not in available_detectors:
+            tk.Label(
+                install_info,
+                text="  • RetinaFace: python download_retinaface.py",
+                font=("Arial", 9),
+                bg="#ecf0f1",
+                fg="#7f8c8d"
+            ).pack(anchor=tk.W)
+        
+        if 'yolo' not in available_detectors:
+            tk.Label(
+                install_info,
+                text="  • YOLO-Face: models/README.md 참조",
+                font=("Arial", 9),
+                bg="#ecf0f1",
+                fg="#7f8c8d"
+            ).pack(anchor=tk.W)
+        
         # 성능 프리셋
         preset_frame = tk.LabelFrame(
             scrollable_frame,
@@ -371,6 +466,60 @@ class SettingsScreen(tk.Frame):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
     
+    def _check_available_detectors(self):
+        """사용 가능한 감지기 확인"""
+        available = []
+        
+        # RetinaFace 확인
+        try:
+            from pathlib import Path
+            retinaface_model = Path("models/retinaface.onnx")
+            if retinaface_model.exists() and retinaface_model.stat().st_size > 1000000:
+                available.append('retinaface')
+        except:
+            pass
+        
+        # YOLO-Face 확인
+        try:
+            from pathlib import Path
+            yolo_models = [
+                Path("models/yolov8n-face.pt"),
+                Path("models/yolov8s-face.pt"),
+                Path("models/yolov8m-face.pt"),
+                Path("models/yolov5n-face.pt"),
+                Path("models/yolov5s-face.pt"),
+            ]
+            if any(m.exists() and m.stat().st_size > 1000000 for m in yolo_models):
+                available.append('yolo')
+        except:
+            pass
+        
+        # HOG는 항상 사용 가능
+        available.append('hog')
+        
+        return available
+    
+    def _update_detector_status(self):
+        """현재 감지기 상태 업데이트"""
+        detector_type = self.detector_var.get()
+        
+        if detector_type == 'auto':
+            # 자동 선택 시 실제 사용될 감지기 표시
+            available = self._check_available_detectors()
+            if 'retinaface' in available:
+                actual = "RetinaFace 🏆"
+            elif 'yolo' in available:
+                actual = "YOLO-Face ⚡"
+            else:
+                actual = "HOG 🔧"
+            self.detector_status.config(text=f"현재 감지기: 자동 선택 → {actual}")
+        elif detector_type == 'retinaface':
+            self.detector_status.config(text="현재 감지기: RetinaFace 🏆 (최고 정확도)")
+        elif detector_type == 'yolo':
+            self.detector_status.config(text="현재 감지기: YOLO-Face ⚡ (최고 속도)")
+        elif detector_type == 'hog':
+            self.detector_status.config(text="현재 감지기: HOG 🔧 (기본)")
+    
     def test_camera(self):
         """카메라 테스트"""
         camera_index = self.camera_var.get()
@@ -433,6 +582,10 @@ class SettingsScreen(tk.Frame):
         self.manager.settings['distance_threshold'] = self.tolerance_var.get() + 0.05
         self.manager.settings['upsample_times'] = self.upsample_var.get()
         self.manager.settings['show_confidence'] = self.confidence_var.get()
+        self.manager.settings['detector_type'] = self.detector_var.get()
+        
+        # 감지기 상태 업데이트
+        self._update_detector_status()
         
         messagebox.showinfo("저장 완료", "설정이 저장되었습니다!")
         print(f"[INFO] 설정 저장: {self.manager.settings}")
@@ -855,29 +1008,10 @@ class RecognitionScreen(tk.Frame):
         self.is_running = False
         self.recognition_thread = None
         
-        # 감지기 초기화 우선순위: RetinaFace > YOLO-Face > HOG
+        # 감지기 초기화 (사용자 설정 우선)
         self.detector = None
         self.detector_type = "HOG"
-        
-        # RetinaFace 시도
-        try:
-            from retinaface_detector import RetinaFaceDetector
-            self.detector = RetinaFaceDetector(conf_threshold=0.5)
-            self.detector_type = "RetinaFace"
-            print("[INFO] ✅ RetinaFace 감지기 사용")
-        except Exception as e:
-            print(f"[WARN] RetinaFace 초기화 실패: {e}")
-            
-            # YOLO-Face 시도
-            try:
-                from yolo_face_detector import YOLOFaceDetector
-                self.detector = YOLOFaceDetector(conf_threshold=0.3)
-                self.detector_type = "YOLO-Face"
-                print("[INFO] ✅ YOLO-Face 감지기 사용")
-            except Exception as e:
-                print(f"[WARN] YOLO-Face 초기화 실패: {e}")
-                self.detector_type = "HOG"
-                print("[INFO] ℹ️  HOG 감지기 사용 (기본)")
+        self._initialize_detector()
         
         # 하위 호환성을 위한 별칭
         self.yolo_detector = self.detector
@@ -896,6 +1030,73 @@ class RecognitionScreen(tk.Frame):
                 self.font_small = ImageFont.load_default()
         
         self.setup_ui()
+    
+    def _initialize_detector(self):
+        """사용자 설정에 따라 감지기 초기화"""
+        # 기본값 설정
+        if 'detector_type' not in self.manager.settings:
+            self.manager.settings['detector_type'] = 'auto'
+        
+        detector_choice = self.manager.settings['detector_type']
+        
+        print(f"[INFO] 감지기 설정: {detector_choice}")
+        
+        # 사용자가 특정 감지기를 선택한 경우
+        if detector_choice == 'retinaface':
+            if self._try_init_retinaface():
+                return
+            else:
+                print("[WARN] RetinaFace를 사용할 수 없습니다. 다른 감지기로 전환합니다.")
+        
+        elif detector_choice == 'yolo':
+            if self._try_init_yolo():
+                return
+            else:
+                print("[WARN] YOLO-Face를 사용할 수 없습니다. 다른 감지기로 전환합니다.")
+        
+        elif detector_choice == 'hog':
+            self.detector_type = "HOG"
+            print("[INFO] ℹ️  HOG 감지기 사용 (사용자 선택)")
+            return
+        
+        # 'auto' 모드 또는 선택한 감지기 사용 불가 시 자동 선택
+        print("[INFO] 자동 감지기 선택 중...")
+        
+        # RetinaFace 시도
+        if self._try_init_retinaface():
+            return
+        
+        # YOLO-Face 시도
+        if self._try_init_yolo():
+            return
+        
+        # HOG 사용 (기본)
+        self.detector_type = "HOG"
+        print("[INFO] ℹ️  HOG 감지기 사용 (기본)")
+    
+    def _try_init_retinaface(self):
+        """RetinaFace 초기화 시도"""
+        try:
+            from retinaface_detector import RetinaFaceDetector
+            self.detector = RetinaFaceDetector(conf_threshold=0.5)
+            self.detector_type = "RetinaFace"
+            print("[INFO] ✅ RetinaFace 감지기 사용")
+            return True
+        except Exception as e:
+            print(f"[WARN] RetinaFace 초기화 실패: {e}")
+            return False
+    
+    def _try_init_yolo(self):
+        """YOLO-Face 초기화 시도"""
+        try:
+            from yolo_face_detector import YOLOFaceDetector
+            self.detector = YOLOFaceDetector(conf_threshold=0.3)
+            self.detector_type = "YOLO-Face"
+            print("[INFO] ✅ YOLO-Face 감지기 사용")
+            return True
+        except Exception as e:
+            print(f"[WARN] YOLO-Face 초기화 실패: {e}")
+            return False
     
     def setup_ui(self):
         # 헤더
@@ -986,11 +1187,35 @@ class RecognitionScreen(tk.Frame):
             fg="#bdc3c7"
         )
         self.status_label.pack(pady=10)
+        
+        # 감지기 정보 표시
+        detector_emoji = {
+            "RetinaFace": "🏆",
+            "YOLO-Face": "⚡",
+            "HOG": "🔧"
+        }
+        emoji = detector_emoji.get(self.detector_type, "🔍")
+        
+        self.detector_info = tk.Label(
+            self,
+            text=f"감지 엔진: {emoji} {self.detector_type}",
+            font=("Arial", 11, "bold"),
+            bg="#2c3e50",
+            fg="#3498db"
+        )
+        self.detector_info.pack(pady=5)
     
     def on_show(self):
         """화면이 표시될 때"""
         if not self.is_running:
-            self.status_label.config(text="대기 중 - '시작' 버튼을 누르세요")
+            detector_emoji = {
+                "RetinaFace": "🏆",
+                "YOLO-Face": "⚡",
+                "HOG": "🔧"
+            }
+            emoji = detector_emoji.get(self.detector_type, "🔍")
+            self.status_label.config(text=f"대기 중 - '시작' 버튼을 누르세요")
+            self.detector_info.config(text=f"감지 엔진: {emoji} {self.detector_type}")
     
     def start_recognition(self):
         """얼굴 인식 시작"""
@@ -1022,7 +1247,14 @@ class RecognitionScreen(tk.Frame):
         self.is_running = True
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.status_label.config(text="실행 중...", fg="#27ae60")
+        
+        detector_emoji = {
+            "RetinaFace": "🏆",
+            "YOLO-Face": "⚡",
+            "HOG": "🔧"
+        }
+        emoji = detector_emoji.get(self.detector_type, "🔍")
+        self.status_label.config(text=f"실행 중... ({emoji} {self.detector_type})", fg="#27ae60")
         
         # 인식 스레드 시작
         self.recognition_thread = threading.Thread(target=self.process_video, daemon=True)
