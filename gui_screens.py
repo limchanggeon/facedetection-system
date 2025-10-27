@@ -1238,11 +1238,21 @@ class RecognitionScreen(tk.Frame):
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self.video_capture.set(cv2.CAP_PROP_FPS, 30)
         
+        # 🚀 카메라 버퍼 최소화 (중요! - 지연 감소)
+        self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        # 🚀 추가 최적화 (macOS/Linux)
+        try:
+            self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+        except:
+            pass
+        
         # 실제 설정된 값 확인
         actual_width = int(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         actual_fps = int(self.video_capture.get(cv2.CAP_PROP_FPS))
         print(f"[INFO] 카메라 해상도: {actual_width}x{actual_height} @ {actual_fps}FPS")
+        print(f"[INFO] ⚡ 최적화 모드: 버퍼=1, MJPG 코덱")
         
         self.is_running = True
         self.start_button.config(state=tk.DISABLED)
@@ -1421,7 +1431,7 @@ class RecognitionScreen(tk.Frame):
                                          for (t, r, b, l) in face_locations]
                 display_face_names = face_names
             
-            # 매 프레임 화면 표시 (OpenCV 직접 사용으로 속도 향상)
+            # 매 프레임 화면 표시 (OpenCV만 사용 - 최고 속도)
             display_frame = frame.copy()
             
             # 바운딩 박스 및 이름 그리기
@@ -1441,53 +1451,32 @@ class RecognitionScreen(tk.Frame):
                 label_height = 30
                 cv2.rectangle(display_frame, (left, bottom - label_height), (right, bottom), color, -1)
                 
-                # 텍스트 (OpenCV - ASCII만 지원하므로 한글은 나중에 PIL로)
-                # 일단 간단하게 표시
-                if name == "Unknown":
-                    cv2.putText(display_frame, name, (left + 6, bottom - 6),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                # 텍스트 (OpenCV - 빠름, 한글 생략)
+                # 한글 대신 ID 표시
+                cv2.putText(display_frame, name.encode('ascii', 'ignore').decode('ascii') or f"Person_{i+1}",
+                           (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             
-            # 한글 이름 처리 (PIL 사용)
-            if len(display_face_names) > 0:
-                rgb_frame = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
-                pil_image = Image.fromarray(rgb_frame)
-                draw = ImageDraw.Draw(pil_image)
-                
-                for i, (top, right, bottom, left) in enumerate(display_face_locations):
-                    if i >= len(display_face_names):
-                        break
-                    name = display_face_names[i]
-                    if name != "Unknown":  # 한글 이름만 PIL로
-                        draw.text((left + 6, bottom - 24), name, font=self.font_small, fill=(255, 255, 255))
-                
-                # FPS 정보 (한글)
-                info_text = f"FPS: {int(current_fps)} | 얼굴: {len(display_face_names)}명"
-                draw.text((10, 10), info_text, font=self.font_small, fill=(0, 255, 0))
-                
-                display_frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-            else:
-                # 얼굴 없으면 OpenCV로만 FPS 표시
-                cv2.putText(display_frame, f"FPS: {int(current_fps)} | Faces: 0",
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            # FPS 정보 (영문만)
+            info_text = f"FPS: {int(current_fps)} | Faces: {len(display_face_names)}"
+            cv2.putText(display_frame, info_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             
-            # BGR을 RGB로 변환
+            # BGR을 RGB로 변환 (최소 변환)
             rgb_display = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
             
-            # PIL로 변환 및 리사이즈
+            # PIL로 변환 및 리사이즈 (최고 속도 - NEAREST)
             img = Image.fromarray(rgb_display)
-            img = img.resize((960, 540), Image.Resampling.BILINEAR)  # BILINEAR가 더 부드러움
+            img_resized = img.resize((960, 540), Image.Resampling.NEAREST)
             
             # PhotoImage로 변환
-            photo = ImageTk.PhotoImage(image=img)
+            photo = ImageTk.PhotoImage(image=img_resized)
             
             # GUI 업데이트 (메인 스레드에서 안전하게)
-            try:
-                if self.is_running:
+            if self.is_running:
+                try:
                     self.video_label.imgtk = photo
                     self.video_label.configure(image=photo, text="")
-            except Exception as e:
-                print(f"[ERROR] GUI 업데이트 오류: {e}")
-                break
+                except:
+                    break
         
         print("[INFO] 비디오 처리 종료")
 
