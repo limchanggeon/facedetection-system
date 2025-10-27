@@ -1287,19 +1287,13 @@ class RecognitionScreen(tk.Frame):
     
     def process_video(self):
         """비디오 프레임 처리 및 얼굴 인식"""
-        # 성능 최적화: 프레임 스킵 설정
+        # 성능 최적화: 프레임 스킵 설정 (얼굴 인식용)
         process_every_n_frames = 3 if self.manager.settings['upsample_times'] >= 1 else 2
         frame_count = 0
         
-        # 이전 프레임의 얼굴 정보 저장
-        previous_face_locations = []
-        previous_face_names = []
-        previous_student_ids = []
-        
-        # 부드러운 이동을 위한 변수
-        smoothed_face_locations = []
-        target_face_locations = []
-        smoothing_factor = 0.15  # 더 빠른 반응
+        # 이전 프레임의 얼굴 정보 저장 (화면 표시용)
+        display_face_locations = []
+        display_face_names = []
         
         # 로깅 쿨다운 관리
         last_logged_names = {}
@@ -1315,6 +1309,7 @@ class RecognitionScreen(tk.Frame):
         
         fps_start_time = time.time()
         fps_frame_count = 0
+        current_fps = 0
         
         while self.is_running:
             ret, frame = self.video_capture.read()
@@ -1324,7 +1319,14 @@ class RecognitionScreen(tk.Frame):
             frame_count += 1
             fps_frame_count += 1
             
-            # 매 N 프레임마다 얼굴 인식 수행
+            # FPS 계산 (30프레임마다)
+            if fps_frame_count >= 30:
+                elapsed = time.time() - fps_start_time
+                current_fps = fps_frame_count / elapsed if elapsed > 0 else 0
+                fps_start_time = time.time()
+                fps_frame_count = 0
+            
+            # 매 N 프레임마다 얼굴 인식 수행 (무거운 작업)
             if frame_count % process_every_n_frames == 0:
                 # 프레임 크기 조정 (INTER_NEAREST가 가장 빠름)
                 frame_scale = self.manager.settings['frame_scale']
@@ -1413,96 +1415,72 @@ class RecognitionScreen(tk.Frame):
                     face_names.append(name_with_confidence)
                     face_student_ids.append(student_id)
                 
-                # 목표 위치 업데이트
+                # 화면 표시용 위치 업데이트 (스케일 적용)
                 scale_factor = int(1 / frame_scale)
-                target_face_locations = [(t*scale_factor, r*scale_factor, b*scale_factor, l*scale_factor)
-                                        for (t, r, b, l) in face_locations]
-                previous_face_names = face_names
-                previous_student_ids = face_student_ids
-                
-                # 첫 프레임이거나 얼굴 수가 변경된 경우 즉시 업데이트
-                if len(smoothed_face_locations) != len(target_face_locations):
-                    smoothed_face_locations = target_face_locations.copy()
+                display_face_locations = [(t*scale_factor, r*scale_factor, b*scale_factor, l*scale_factor)
+                                         for (t, r, b, l) in face_locations]
+                display_face_names = face_names
             
-            # 부드러운 이동 적용 (벡터화 최적화)
-            if len(smoothed_face_locations) > 0 and len(target_face_locations) > 0:
-                min_len = min(len(smoothed_face_locations), len(target_face_locations))
-                for i in range(min_len):
-                    st, sr, sb, sl = smoothed_face_locations[i]
-                    tt, tr, tb, tl = target_face_locations[i]
-                    
-                    # 빠른 정수 연산
-                    smoothed_face_locations[i] = (
-                        st + int((tt - st) * smoothing_factor),
-                        sr + int((tr - sr) * smoothing_factor),
-                        sb + int((tb - sb) * smoothing_factor),
-                        sl + int((tl - sl) * smoothing_factor)
-                    )
+            # 매 프레임 화면 표시 (OpenCV 직접 사용으로 속도 향상)
+            display_frame = frame.copy()
             
-            # OpenCV BGR을 RGB로 변환 후 PIL로 처리
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            pil_image = Image.fromarray(rgb_frame)
-            draw = ImageDraw.Draw(pil_image)
-            
-            # 바운딩 박스 그리기
-            for i, (top, right, bottom, left) in enumerate(smoothed_face_locations):
-                if i >= len(previous_face_names):
+            # 바운딩 박스 및 이름 그리기
+            for i, (top, right, bottom, left) in enumerate(display_face_locations):
+                if i >= len(display_face_names):
                     break
                 
-                name = previous_face_names[i]
+                name = display_face_names[i]
                 
-                # 바운딩 박스 색상 (등록: 녹색, 미등록: 빨강)
-                color = (0, 255, 0) if name != "Unknown" else (255, 0, 0)
+                # 바운딩 박스 색상 (등록: 녹색, 미등록: 빨강) - OpenCV는 BGR
+                color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
                 
-                # 박스 그리기
-                for thickness in range(3):
-                    draw.rectangle(
-                        [left - thickness, top - thickness, right + thickness, bottom + thickness],
-                        outline=color,
-                        width=1
-                    )
+                # 박스 그리기 (OpenCV - 빠름)
+                cv2.rectangle(display_frame, (left, top), (right, bottom), color, 2)
                 
                 # 이름 배경 박스
-                text_bbox = draw.textbbox((0, 0), name, font=self.font_small)
-                text_width = text_bbox[2] - text_bbox[0]
-                text_height = text_bbox[3] - text_bbox[1]
+                label_height = 30
+                cv2.rectangle(display_frame, (left, bottom - label_height), (right, bottom), color, -1)
                 
-                draw.rectangle(
-                    [left, bottom - text_height - 15, left + text_width + 20, bottom],
-                    fill=color
-                )
-                
-                # 한글 이름 텍스트
-                draw.text(
-                    (left + 10, bottom - text_height - 10),
-                    name,
-                    font=self.font_small,
-                    fill=(0, 0, 0)  # 검은색
-                )
+                # 텍스트 (OpenCV - ASCII만 지원하므로 한글은 나중에 PIL로)
+                # 일단 간단하게 표시
+                if name == "Unknown":
+                    cv2.putText(display_frame, name, (left + 6, bottom - 6),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
-            # 상태 정보 표시 (성능 개선된 포맷)
-            if fps_frame_count % 30 == 0:
-                elapsed = time.time() - fps_start_time
-                current_fps = fps_frame_count / elapsed if elapsed > 0 else 0
-                info_text = f"FPS: {int(current_fps)} | 얼굴: {len(previous_face_names)}명"
-                fps_start_time = time.time()
-                fps_frame_count = 0
+            # 한글 이름 처리 (PIL 사용)
+            if len(display_face_names) > 0:
+                rgb_frame = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                pil_image = Image.fromarray(rgb_frame)
+                draw = ImageDraw.Draw(pil_image)
+                
+                for i, (top, right, bottom, left) in enumerate(display_face_locations):
+                    if i >= len(display_face_names):
+                        break
+                    name = display_face_names[i]
+                    if name != "Unknown":  # 한글 이름만 PIL로
+                        draw.text((left + 6, bottom - 24), name, font=self.font_small, fill=(255, 255, 255))
+                
+                # FPS 정보 (한글)
+                info_text = f"FPS: {int(current_fps)} | 얼굴: {len(display_face_names)}명"
+                draw.text((10, 10), info_text, font=self.font_small, fill=(0, 255, 0))
+                
+                display_frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
             else:
-                info_text = f"얼굴: {len(previous_face_names)}명"
+                # 얼굴 없으면 OpenCV로만 FPS 표시
+                cv2.putText(display_frame, f"FPS: {int(current_fps)} | Faces: 0",
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             
-            draw.text((10, 10), info_text, font=self.font_small, fill=(0, 255, 0))
+            # BGR을 RGB로 변환
+            rgb_display = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
             
-            # PIL Image를 numpy 배열로 변환
-            frame = np.array(pil_image)
-            
-            # PIL Image로 변환 및 리사이즈 (빠른 NEAREST 사용)
-            img = Image.fromarray(frame)
-            img = img.resize((960, 540), Image.Resampling.NEAREST)
+            # PIL로 변환 및 리사이즈
+            img = Image.fromarray(rgb_display)
+            img = img.resize((960, 540), Image.Resampling.BILINEAR)  # BILINEAR가 더 부드러움
             
             # PhotoImage로 변환
             photo = ImageTk.PhotoImage(image=img)
             
-            # GUI 업데이트
+            # GUI 업데이트 (메인 스레드에서 안전하게)
             try:
                 if self.is_running:
                     self.video_label.imgtk = photo
@@ -1510,8 +1488,6 @@ class RecognitionScreen(tk.Frame):
             except Exception as e:
                 print(f"[ERROR] GUI 업데이트 오류: {e}")
                 break
-            
-            time.sleep(0.01)
         
         print("[INFO] 비디오 처리 종료")
 
