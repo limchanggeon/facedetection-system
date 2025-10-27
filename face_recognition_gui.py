@@ -30,6 +30,15 @@ class FaceRecognitionApp:
         self.last_logged_names = {}
         self.log_cooldown = 5  # 같은 사람을 5초마다 한 번만 로그
         
+        # 얼굴 인식 정확도 설정
+        self.tolerance = 0.4  # 0.6 기본값, 낮을수록 엄격 (0.3-0.6 권장)
+        self.distance_threshold = 0.45  # 거리 임계값 (0.6 이하 권장)
+        self.show_confidence = True  # 신뢰도 표시 여부
+        
+        # 멀티 얼굴 탐지 설정
+        self.upsample_times = 2  # 얼굴 탐지 업샘플링 횟수 (0-2, 높을수록 작은 얼굴도 탐지)
+        self.frame_scale = 0.5  # 프레임 축소 비율 (0.25-1.0, 높을수록 정확하지만 느림)
+        
         # 한글 폰트 설정
         try:
             # macOS 시스템 폰트 사용
@@ -194,9 +203,135 @@ class FaceRecognitionApp:
             fg="#1a1a1a",
             activeforeground="#1a1a1a",
             activebackground="#e67e22",
-            font=("Arial", 13, "bold"),
+            font=("Arial", 12, "bold"),
             cursor="hand2"
-        ).pack(fill=tk.X, padx=10, pady=(0, 10))
+        ).pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        # 정확도 설정 섹션
+        accuracy_frame = tk.LabelFrame(
+            right_panel,
+            text="⚙️ 인식 정확도 설정",
+            font=("Arial", 14, "bold"),
+            bg="#ecf0f1",
+            fg="#2c3e50"
+        )
+        accuracy_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        # Tolerance 설정
+        tolerance_info = tk.Frame(accuracy_frame, bg="#ecf0f1")
+        tolerance_info.pack(fill=tk.X, padx=10, pady=5)
+        
+        tk.Label(
+            tolerance_info,
+            text="매칭 엄격도:",
+            font=("Arial", 11, "bold"),
+            bg="#ecf0f1"
+        ).pack(side=tk.LEFT)
+        
+        self.tolerance_label = tk.Label(
+            tolerance_info,
+            text=f"{self.tolerance:.2f}",
+            font=("Arial", 11),
+            bg="#ecf0f1",
+            fg="#e74c3c"
+        )
+        self.tolerance_label.pack(side=tk.RIGHT)
+        
+        self.tolerance_slider = tk.Scale(
+            accuracy_frame,
+            from_=0.3,
+            to=0.6,
+            resolution=0.05,
+            orient=tk.HORIZONTAL,
+            command=self.update_tolerance,
+            bg="#ecf0f1",
+            length=400
+        )
+        self.tolerance_slider.set(self.tolerance)
+        self.tolerance_slider.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        tk.Label(
+            accuracy_frame,
+            text="← 더 엄격 (오탐 감소) | 더 관대 (미인식 감소) →",
+            font=("Arial", 9),
+            bg="#ecf0f1",
+            fg="#7f8c8d"
+        ).pack(pady=(0, 5))
+        
+        # 신뢰도 표시 토글
+        self.confidence_var = tk.BooleanVar(value=self.show_confidence)
+        confidence_check = tk.Checkbutton(
+            accuracy_frame,
+            text="신뢰도 표시 (얼굴 옆에 %로 표시)",
+            variable=self.confidence_var,
+            command=self.toggle_confidence,
+            font=("Arial", 10),
+            bg="#ecf0f1"
+        )
+        confidence_check.pack(pady=5)
+        
+        # 구분선
+        tk.Frame(accuracy_frame, height=2, bg="#bdc3c7").pack(fill=tk.X, padx=10, pady=10)
+        
+        # 멀티/원거리 탐지 설정
+        tk.Label(
+            accuracy_frame,
+            text="🎯 원거리/멀티 얼굴 탐지:",
+            font=("Arial", 11, "bold"),
+            bg="#ecf0f1"
+        ).pack(anchor=tk.W, padx=10, pady=(5, 5))
+        
+        # 업샘플링 설정
+        upsample_info = tk.Frame(accuracy_frame, bg="#ecf0f1")
+        upsample_info.pack(fill=tk.X, padx=10, pady=5)
+        
+        tk.Label(
+            upsample_info,
+            text="원거리 감도:",
+            font=("Arial", 10),
+            bg="#ecf0f1"
+        ).pack(side=tk.LEFT)
+        
+        self.upsample_label = tk.Label(
+            upsample_info,
+            text=f"{self.upsample_times}",
+            font=("Arial", 10, "bold"),
+            bg="#ecf0f1",
+            fg="#2980b9"
+        )
+        self.upsample_label.pack(side=tk.RIGHT)
+        
+        self.upsample_slider = tk.Scale(
+            accuracy_frame,
+            from_=0,
+            to=2,
+            resolution=1,
+            orient=tk.HORIZONTAL,
+            command=self.update_upsample,
+            bg="#ecf0f1",
+            length=400
+        )
+        self.upsample_slider.set(self.upsample_times)
+        self.upsample_slider.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        tk.Label(
+            accuracy_frame,
+            text="← 빠름/가까운 얼굴만 | 느림/먼 얼굴도 탐지 →",
+            font=("Arial", 9),
+            bg="#ecf0f1",
+            fg="#7f8c8d"
+        ).pack(pady=(0, 5))
+        
+        # 팁 라벨
+        tip_label = tk.Label(
+            accuracy_frame,
+            text="💡 팁: 오탐지가 있다면 슬라이더를 왼쪽으로,\n인식이 잘 안된다면 오른쪽으로 조절하세요.\n\n🎥 CCTV 모드: 원거리 감도를 2로 설정하면\n멀리 있는 여러 사람을 동시에 탐지합니다.",
+            font=("Arial", 9),
+            bg="#ecf0f1",
+            fg="#16a085",
+            justify=tk.LEFT
+        )
+        tip_label.pack(pady=5, padx=10)
         
         # 목록 업데이트
         self.update_face_list()
@@ -214,6 +349,26 @@ class FaceRecognitionApp:
         
         # 통계 업데이트
         self.stats_label.config(text=f"등록된 얼굴: {len(self.known_faces['names'])}명")
+    
+    def update_tolerance(self, value):
+        """Tolerance 값 업데이트"""
+        self.tolerance = float(value)
+        self.distance_threshold = self.tolerance + 0.05  # tolerance보다 약간 높게
+        self.tolerance_label.config(text=f"{self.tolerance:.2f}")
+        print(f"[INFO] 매칭 엄격도 변경: {self.tolerance:.2f} (거리 임계값: {self.distance_threshold:.2f})")
+    
+    def update_upsample(self, value):
+        """업샘플링 횟수 업데이트"""
+        self.upsample_times = int(float(value))
+        self.upsample_label.config(text=f"{self.upsample_times}")
+        performance_msg = ["빠름 (가까운 얼굴만)", "보통 (중거리)", "느림 (원거리 탐지)"][self.upsample_times]
+        print(f"[INFO] 원거리 감도 변경: {self.upsample_times} ({performance_msg})")
+    
+    def toggle_confidence(self):
+        """신뢰도 표시 토글"""
+        self.show_confidence = self.confidence_var.get()
+        status = "활성화" if self.show_confidence else "비활성화"
+        print(f"[INFO] 신뢰도 표시 {status}")
     
     def register_new_face(self):
         """새로운 얼굴 등록"""
@@ -383,14 +538,21 @@ class FaceRecognitionApp:
             
             # 매 N 프레임마다 얼굴 인식 수행
             if frame_count % process_every_n_frames == 0:
-                # 처리 속도를 위해 프레임 크기 축소
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                # 처리 속도와 정확도 균형을 위해 프레임 크기 조정
+                small_frame = cv2.resize(frame, (0, 0), fx=self.frame_scale, fy=self.frame_scale)
                 rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
                 
-                # 얼굴 위치 및 인코딩
+                # 얼굴 위치 및 인코딩 (업샘플링으로 작은 얼굴도 탐지)
                 try:
-                    face_locations = face_recognition.face_locations(rgb_small_frame, model="hog")
+                    face_locations = face_recognition.face_locations(
+                        rgb_small_frame, 
+                        model="hog",
+                        number_of_times_to_upsample=self.upsample_times  # 원거리 얼굴 탐지 향상
+                    )
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                    
+                    if len(face_locations) > 0:
+                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨")
                 except Exception as e:
                     print(f"[ERROR] 얼굴 인식 오류: {e}")
                     continue
@@ -399,24 +561,30 @@ class FaceRecognitionApp:
                 
                 for face_encoding in face_encodings:
                     name = "Unknown"
+                    confidence = 0.0
                     
                     if len(self.known_faces["encodings"]) > 0:
                         try:
-                            matches = face_recognition.compare_faces(
-                                self.known_faces["encodings"],
-                                face_encoding,
-                                tolerance=0.5  # 더 엄격한 매칭
+                            # 거리 계산으로 가장 가까운 얼굴 찾기
+                            face_distances = face_recognition.face_distance(
+                                self.known_faces["encodings"], 
+                                face_encoding
                             )
+                            best_match_index = face_distances.argmin()
+                            best_distance = face_distances[best_match_index]
                             
-                            if True in matches:
-                                # 거리 계산으로 가장 가까운 얼굴 찾기
-                                face_distances = face_recognition.face_distance(
-                                    self.known_faces["encodings"], 
-                                    face_encoding
+                            # 신뢰도 계산 (거리가 작을수록 높음)
+                            confidence = max(0, 1 - best_distance)
+                            
+                            # tolerance와 distance_threshold 둘 다 만족해야 매칭
+                            if best_distance <= self.tolerance and best_distance <= self.distance_threshold:
+                                matches = face_recognition.compare_faces(
+                                    [self.known_faces["encodings"][best_match_index]],
+                                    face_encoding,
+                                    tolerance=self.tolerance
                                 )
-                                best_match_index = face_distances.argmin()
                                 
-                                if matches[best_match_index]:
+                                if matches[0]:
                                     name = self.known_faces["names"][best_match_index]
                                     
                                     # 등록된 사람 로그
@@ -426,6 +594,7 @@ class FaceRecognitionApp:
                                         try:
                                             self.db.log_recognition(name, True)
                                             self.last_logged_names[name] = current_time
+                                            print(f"[INFO] 인식: {name} (신뢰도: {confidence:.2%}, 거리: {best_distance:.3f})")
                                         except Exception as e:
                                             print(f"[WARNING] 로그 저장 실패: {e}")
                         except Exception as e:
@@ -441,10 +610,18 @@ class FaceRecognitionApp:
                             except Exception as e:
                                 print(f"[WARNING] 로그 저장 실패: {e}")
                     
-                    face_names.append(name)
+                    # 신뢰도 정보와 함께 저장
+                    if self.show_confidence and name != "Unknown":
+                        name_with_confidence = f"{name} ({confidence:.0%})"
+                    else:
+                        name_with_confidence = name
+                    
+                    face_names.append(name_with_confidence)
                 
-                # 목표 위치 업데이트
-                target_face_locations = [(t*4, r*4, b*4, l*4) for (t, r, b, l) in face_locations]
+                # 목표 위치 업데이트 (축소 비율에 맞게 스케일 조정)
+                scale_factor = int(1 / self.frame_scale)
+                target_face_locations = [(t*scale_factor, r*scale_factor, b*scale_factor, l*scale_factor) 
+                                        for (t, r, b, l) in face_locations]
                 previous_face_names = face_names
                 
                 # 첫 프레임이거나 얼굴 수가 변경된 경우 즉시 업데이트
