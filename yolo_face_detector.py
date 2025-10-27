@@ -1,18 +1,26 @@
 """
 YOLO-Face 얼굴 감지 모듈
-HOG 대신 YOLOv5-face를 사용하여 더 빠르고 정확한 얼굴 감지
+HOG 대신 YOLOv8/v5-face를 사용하여 더 빠르고 정확한 얼굴 감지
+(ultralytics 라이브러리 사용)
 """
 import torch
 import cv2
 import numpy as np
 from pathlib import Path
 
+# 🔔 ultralytics 라이브러리가 YOLOv8과 v5를 모두 처리
+try:
+    from ultralytics import YOLO
+except ImportError:
+    print("[ERROR] 'ultralytics' 라이브러리가 필요합니다. 'pip install ultralytics'로 설치하세요.")
+    raise
+
 class YOLOFaceDetector:
-    """YOLOv5-face 기반 얼굴 감지기"""
+    """YOLOv8/v5-face 기반 얼굴 감지기 (ultralytics 사용)"""
     
     def __init__(self, model_path=None, device='auto', conf_threshold=0.3):
         """
-        YOLOv5-face 초기화
+        YOLO-Face 초기화
         
         Args:
             model_path: YOLO-Face 모델 경로 (None이면 자동 검색)
@@ -39,31 +47,12 @@ class YOLOFaceDetector:
             print("[INFO] yolov5n-face.pt를 models/ 폴더에 저장하세요")
             raise FileNotFoundError("YOLO-Face 모델이 필요합니다. models/README.md를 참조하세요")
         
-        # 모델 로드
+        # 🔔 수정: ultralytics YOLO로 모델 로드 (v5, v8 모두 호환)
         try:
             print(f"[INFO] YOLO-Face 모델 로드 중: {model_path}")
-            
-            # YOLOv8이면 ultralytics YOLO 사용
-            if 'yolov8' in model_path:
-                from ultralytics import YOLO
-                self.model = YOLO(model_path)
-                self.model.conf = conf_threshold
-                self.is_yolov8 = True
-                print("[INFO] YOLOv8-Face 모델 로드 완료")
-            else:
-                # YOLOv5이면 torch.hub.load 사용
-                self.model = torch.hub.load(
-                    'ultralytics/yolov5',
-                    'custom',
-                    path=model_path,
-                    source='github',
-                    force_reload=False,
-                    trust_repo=True
-                )
-                self.model.conf = conf_threshold
-                self.model.to(self.device)
-                self.is_yolov8 = False
-                print("[INFO] YOLOv5-Face 모델 로드 완료")
+            self.model = YOLO(model_path)
+            self.model.to(self.device)
+            print(f"[INFO] ✅ YOLO-Face 모델 로드 완료 ({model_path.split('/')[-1]})")
         except Exception as e:
             raise RuntimeError(f"YOLO-Face 모델 로드 실패: {e}")
     
@@ -91,60 +80,41 @@ class YOLOFaceDetector:
         
         return None
     
-    def detect_faces(self, image, upsample_times=0):
+    def detect_faces(self, image):
         """
         이미지에서 얼굴 감지
         
         Args:
             image: RGB 이미지 (numpy array)
-            upsample_times: 업샘플링 횟수 (0-2)
-                0: 원본 크기
-                1: 2배 확대
-                2: 4배 확대
         
         Returns:
             face_locations: 얼굴 위치 리스트 [(top, right, bottom, left), ...]
                            face_recognition 형식과 호환
         """
+        # 🔔 수정: upsample_times 인자 및 로직 제거
+        # (입력 이미지는 screen_manager에서 이미 스케일링됨)
         h, w = image.shape[:2]
         
-        # 업샘플링 적용
-        if upsample_times > 0:
-            scale = 2 ** upsample_times
-            image_upsampled = cv2.resize(image, (w * scale, h * scale))
-        else:
-            image_upsampled = image
-            scale = 1
+        # YOLO 추론 (신뢰도 직접 전달)
+        results = self.model(
+            image, 
+            conf=self.conf_threshold, 
+            verbose=False,
+            device=self.device
+        )
         
-        # YOLO 추론
-        results = self.model(image_upsampled, verbose=False)
-        
-        # 결과 파싱 (YOLOv8과 YOLOv5 호환)
-        if self.is_yolov8:
-            # YOLOv8: results[0].boxes
-            boxes = results[0].boxes
-            detections = boxes.xyxy.cpu().numpy()  # [x1, y1, x2, y2]
-            confidences = boxes.conf.cpu().numpy()  # confidence scores
-        else:
-            # YOLOv5: results.xyxy[0]
-            detections_raw = results.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2, conf, cls]
-            detections = detections_raw[:, :4]
-            confidences = detections_raw[:, 4]
+        # 결과 파싱 (ultralytics v8 형식)
+        boxes = results[0].boxes
+        detections = boxes.xyxy.cpu().numpy()  # [x1, y1, x2, y2]
         
         face_locations = []
-        for i, (x1, y1, x2, y2) in enumerate(detections):
-            conf = confidences[i]
-            
-            # 신뢰도 필터링
-            if conf < self.conf_threshold:
-                continue
-            
+        for (x1, y1, x2, y2) in detections:
             # 좌표 변환: YOLO (x1, y1, x2, y2) → face_recognition (top, right, bottom, left)
-            # 업샘플링 보정
-            top = int(y1 / scale)
-            right = int(x2 / scale)
-            bottom = int(y2 / scale)
-            left = int(x1 / scale)
+            # 🔔 수정: scale 보정 제거
+            top = int(y1)
+            right = int(x2)
+            bottom = int(y2)
+            left = int(x1)
             
             # 이미지 범위 내로 클리핑
             top = max(0, min(top, h))
@@ -165,7 +135,7 @@ class YOLOFaceDetector:
     def set_confidence_threshold(self, threshold):
         """신뢰도 임계값 변경"""
         self.conf_threshold = threshold
-        self.model.conf = threshold
+        # 🔔 수정: 모델의 conf 속성 대신 추론 시 conf 값 전달
         print(f"[INFO] YOLO 신뢰도 임계값 변경: {threshold}")
 
 
@@ -272,7 +242,8 @@ if __name__ == "__main__":
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         # 얼굴 감지
-        face_locations = detector.detect_faces(rgb_frame, upsample_times=0)
+        # 🔔 수정: upsample_times 인자 제거
+        face_locations = detector.detect_faces(rgb_frame)
         
         # 결과 시각화
         for (top, right, bottom, left) in face_locations:

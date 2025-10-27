@@ -819,10 +819,8 @@ class RegisterScreen(tk.Frame):
                 # RecognitionScreen과 동일한 감지기 사용
                 try:
                     if self.detector and self.detector_type != "HOG":
-                        face_locations = self.detector.detect_faces(
-                            rgb_frame,
-                            upsample_times=self.manager.settings.get('upsample_times', 1)
-                        )
+                        # 🔔 RetinaFace/YOLO는 upsample_times 불필요
+                        face_locations = self.detector.detect_faces(rgb_frame)
                     else:
                         face_locations = face_recognition.face_locations(
                             rgb_frame,
@@ -1470,10 +1468,8 @@ class RecognitionScreen(tk.Frame):
                 try:
                     # RetinaFace, YOLO-Face 또는 HOG 사용
                     if self.detector and self.detector_type != "HOG":
-                        face_locations = self.detector.detect_faces(
-                            rgb_small_frame,
-                            upsample_times=self.manager.settings['upsample_times']
-                        )
+                        # 🔔 RetinaFace/YOLO는 upsample_times 불필요
+                        face_locations = self.detector.detect_faces(rgb_small_frame)
                     else:
                         face_locations = face_recognition.face_locations(
                             rgb_small_frame,
@@ -1517,15 +1513,12 @@ class RecognitionScreen(tk.Frame):
                                 name = known_faces["names"][best_match_index]
                                 student_id = known_faces["student_ids"][best_match_index]
                                 
-                                # 등록된 사람 로그 (비동기 처리를 위한 준비)
+                                # 🔔 비동기 로깅 큐에 넣기
                                 current_time = time.time()
                                 if student_id not in last_logged_names or \
                                    (current_time - last_logged_names[student_id]) > log_cooldown:
-                                    try:
-                                        self.manager.db.log_recognition(name, student_id, True)
-                                        last_logged_names[student_id] = current_time
-                                    except Exception as e:
-                                        pass  # 로그 실패는 무시
+                                    self.log_queue.put((name, student_id, True))
+                                    last_logged_names[student_id] = current_time
                         except Exception as e:
                             pass  # 에러 무시하고 계속
                     
@@ -1533,11 +1526,9 @@ class RecognitionScreen(tk.Frame):
                     if name == "Unknown":
                         if "Unknown" not in last_logged_names or \
                            (time.time() - last_logged_names["Unknown"]) > log_cooldown * 2:  # Unknown은 더 낮은 빈도
-                            try:
-                                self.manager.db.log_recognition("Unknown", None, False)
-                                last_logged_names["Unknown"] = time.time()
-                            except:
-                                pass
+                            # 🔔 비동기 로깅 큐에 넣기
+                            self.log_queue.put(("Unknown", None, False))
+                            last_logged_names["Unknown"] = time.time()
                     
                     # 신뢰도 표시 (문자열 포맷 최적화)
                     if self.manager.settings['show_confidence'] and name != "Unknown":
