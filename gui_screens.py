@@ -9,6 +9,7 @@ import face_recognition
 import threading
 import time
 import numpy as np
+import queue
 from database import FaceDatabase
 from yolo_face_detector import YOLOFaceDetector
 
@@ -143,6 +144,18 @@ class LobbyScreen(tk.Frame):
             bg="#2c3e50",
             fg="#7f8c8d"
         ).pack()
+    
+    def on_show(self):
+        """🔔 화면이 표시될 때 통계 갱신"""
+        # 통계 정보 프레임 찾기
+        for widget in self.winfo_children():
+            if isinstance(widget, tk.Frame) and widget.cget('bg') == "#34495e":
+                for label in widget.winfo_children():
+                    if isinstance(label, tk.Label) and "등록된 얼굴" in label.cget('text'):
+                        registered_count = self.manager.db.get_registered_count()
+                        label.config(text=f"등록된 얼굴: {registered_count}명")
+                        break
+                break
 
 
 class SettingsScreen(tk.Frame):
@@ -596,7 +609,56 @@ class RegisterScreen(tk.Frame):
     def __init__(self, parent, manager):
         super().__init__(parent, bg="#ecf0f1")
         self.manager = manager
+        
+        # 🔔 감지기 초기화 (RecognitionScreen과 동일)
+        self.detector = None
+        self.detector_type = "HOG"
+        self._initialize_detector()
+        
         self.setup_ui()
+    
+    def _initialize_detector(self):
+        """사용자 설정에 따라 감지기 초기화 (RecognitionScreen과 동일)"""
+        if 'detector_type' not in self.manager.settings:
+            self.manager.settings['detector_type'] = 'auto'
+        
+        detector_choice = self.manager.settings['detector_type']
+        
+        if detector_choice == 'retinaface':
+            if self._try_init_retinaface():
+                return
+        elif detector_choice == 'yolo':
+            if self._try_init_yolo():
+                return
+        elif detector_choice == 'hog':
+            self.detector_type = "HOG"
+            return
+        
+        # 'auto' 모드 또는 선택한 감지기 사용 불가 시 자동 선택
+        if self._try_init_retinaface():
+            return
+        if self._try_init_yolo():
+            return
+        
+        self.detector_type = "HOG"
+    
+    def _try_init_retinaface(self):
+        try:
+            from retinaface_detector import RetinaFaceDetector
+            self.detector = RetinaFaceDetector(conf_threshold=0.5)
+            self.detector_type = "RetinaFace"
+            return True
+        except:
+            return False
+    
+    def _try_init_yolo(self):
+        try:
+            from yolo_face_detector import YOLOFaceDetector
+            self.detector = YOLOFaceDetector(conf_threshold=0.3)
+            self.detector_type = "YOLO-Face"
+            return True
+        except:
+            return False
     
     def setup_ui(self):
         # 헤더
@@ -751,9 +813,26 @@ class RegisterScreen(tk.Frame):
             if key == 27:  # ESC
                 break
             elif key == 32:  # SPACE
-                # 얼굴 감지 및 인코딩
+                # 🔔 얼굴 감지 및 인코딩 (설정된 감지기 사용)
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                face_locations = face_recognition.face_locations(rgb_frame)
+                
+                # RecognitionScreen과 동일한 감지기 사용
+                try:
+                    if self.detector and self.detector_type != "HOG":
+                        face_locations = self.detector.detect_faces(
+                            rgb_frame,
+                            upsample_times=self.manager.settings.get('upsample_times', 1)
+                        )
+                    else:
+                        face_locations = face_recognition.face_locations(
+                            rgb_frame,
+                            model="hog",
+                            number_of_times_to_upsample=self.manager.settings.get('upsample_times', 1)
+                        )
+                except Exception as e:
+                    print(f"[ERROR] 얼굴 감지 오류: {e}")
+                    messagebox.showerror("오류", f"얼굴 감지 실패: {e}")
+                    continue
                 
                 if len(face_locations) == 0:
                     messagebox.showwarning("경고", "얼굴을 감지할 수 없습니다. 다시 시도하세요.")
@@ -1008,6 +1087,13 @@ class RecognitionScreen(tk.Frame):
         self.is_running = False
         self.recognition_thread = None
         
+        # 🔔 스레드 안전 GUI 업데이트를 위한 큐
+        self.frame_queue = queue.Queue(maxsize=2)
+        
+        # 🔔 비동기 로깅을 위한 큐
+        self.log_queue = queue.Queue()
+        self.logging_thread = None
+        
         # 감지기 초기화 (사용자 설정 우선)
         self.detector = None
         self.detector_type = "HOG"
@@ -1017,17 +1103,31 @@ class RecognitionScreen(tk.Frame):
         self.yolo_detector = self.detector
         self.use_yolo = (self.detector_type != "HOG")
         
-        # 한글 폰트 설정
-        try:
-            self.font = ImageFont.truetype("/System/Library/Fonts/AppleSDGothicNeo.ttc", 30)
-            self.font_small = ImageFont.truetype("/System/Library/Fonts/AppleSDGothicNeo.ttc", 20)
-        except:
+        # 한글 폰트 설정 (프로젝트 폴더 우선)
+        font_paths = [
+            "fonts/NanumGothic.ttf",  # 프로젝트 폴더
+            "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS
+            "/Library/Fonts/Arial Unicode.ttf",  # macOS
+            "C:\\Windows\\Fonts\\malgun.ttf",  # Windows 맑은고딕
+            "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
+        ]
+        
+        self.font = None
+        self.font_small = None
+        
+        for font_path in font_paths:
             try:
-                self.font = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf", 30)
-                self.font_small = ImageFont.truetype("/Library/Fonts/Arial Unicode.ttf", 20)
+                self.font = ImageFont.truetype(font_path, 28)
+                self.font_small = ImageFont.truetype(font_path, 18)
+                print(f"[INFO] 폰트 로드 성공: {font_path}")
+                break
             except:
-                self.font = ImageFont.load_default()
-                self.font_small = ImageFont.load_default()
+                continue
+        
+        if self.font is None:
+            print("[WARN] 한글 폰트를 찾을 수 없습니다. 기본 폰트 사용 (한글 깨짐 가능)")
+            self.font = ImageFont.load_default()
+            self.font_small = ImageFont.load_default()
         
         self.setup_ui()
     
@@ -1208,6 +1308,9 @@ class RecognitionScreen(tk.Frame):
     def on_show(self):
         """화면이 표시될 때"""
         if not self.is_running:
+            # 🔔 설정이 변경되었을 수 있으므로 감지기 재로드
+            self._initialize_detector()
+            
             detector_emoji = {
                 "RetinaFace": "🏆",
                 "YOLO-Face": "⚡",
@@ -1266,9 +1369,16 @@ class RecognitionScreen(tk.Frame):
         emoji = detector_emoji.get(self.detector_type, "🔍")
         self.status_label.config(text=f"실행 중... ({emoji} {self.detector_type})", fg="#27ae60")
         
+        # 🔔 비동기 로깅 스레드 시작
+        self.logging_thread = threading.Thread(target=self._process_log_queue, daemon=True)
+        self.logging_thread.start()
+        
         # 인식 스레드 시작
         self.recognition_thread = threading.Thread(target=self.process_video, daemon=True)
         self.recognition_thread.start()
+        
+        # 🔔 메인 스레드에서 GUI 업데이터 시작
+        self.update_gui()
         
         print(f"[INFO] 얼굴 인식 시작 - 카메라: {camera_index}, 설정: {self.manager.settings}")
     
@@ -1278,6 +1388,19 @@ class RecognitionScreen(tk.Frame):
         
         if self.video_capture:
             self.video_capture.release()
+        
+        # 🔔 큐 비우기
+        while not self.frame_queue.empty():
+            try:
+                self.frame_queue.get_nowait()
+            except queue.Empty:
+                break
+        
+        while not self.log_queue.empty():
+            try:
+                self.log_queue.get_nowait()
+            except queue.Empty:
+                break
         
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
@@ -1431,52 +1554,102 @@ class RecognitionScreen(tk.Frame):
                                          for (t, r, b, l) in face_locations]
                 display_face_names = face_names
             
-            # 매 프레임 화면 표시 (OpenCV만 사용 - 최고 속도)
+            # 🔔 매 프레임 화면 표시 (PIL로 한글 지원)
             display_frame = frame.copy()
             
-            # 바운딩 박스 및 이름 그리기
+            # OpenCV로 바운딩 박스 그리기
             for i, (top, right, bottom, left) in enumerate(display_face_locations):
                 if i >= len(display_face_names):
                     break
                 
                 name = display_face_names[i]
                 
-                # 바운딩 박스 색상 (등록: 녹색, 미등록: 빨강) - OpenCV는 BGR
-                color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
+                # 바운딩 박스 색상 (등록: 녹색, 미등록: 빨강)
+                color = (0, 255, 0) if "Unknown" not in name else (0, 0, 255)
                 
-                # 박스 그리기 (OpenCV - 빠름)
+                # 박스 그리기
                 cv2.rectangle(display_frame, (left, top), (right, bottom), color, 2)
-                
-                # 이름 배경 박스
-                label_height = 30
-                cv2.rectangle(display_frame, (left, bottom - label_height), (right, bottom), color, -1)
-                
-                # 텍스트 (OpenCV - 빠름, 한글 생략)
-                # 한글 대신 ID 표시
-                cv2.putText(display_frame, name.encode('ascii', 'ignore').decode('ascii') or f"Person_{i+1}",
-                           (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
             
-            # FPS 정보 (영문만)
-            info_text = f"FPS: {int(current_fps)} | Faces: {len(display_face_names)}"
-            cv2.putText(display_frame, info_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-            
-            # BGR을 RGB로 변환 (최소 변환)
+            # BGR -> RGB 변환
             rgb_display = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
             
-            # PIL로 변환 및 리사이즈 (최고 속도 - NEAREST)
+            # 🔔 PIL로 변환 (한글 폰트 사용)
             img = Image.fromarray(rgb_display)
-            img_resized = img.resize((960, 540), Image.Resampling.NEAREST)
+            draw = ImageDraw.Draw(img)
             
-            # PhotoImage로 변환
+            # 🔔 PIL로 텍스트 그리기 (한글 지원!)
+            for i, (top, right, bottom, left) in enumerate(display_face_locations):
+                if i >= len(display_face_names):
+                    break
+                
+                name = display_face_names[i]
+                color_rgb = (0, 255, 0) if "Unknown" not in name else (255, 0, 0)
+                
+                # 이름 배경 박스
+                label_height = 35
+                draw.rectangle([(left, bottom - label_height), (right, bottom)], fill=color_rgb)
+                
+                # 텍스트 그리기 (self.font_small 사용)
+                draw.text((left + 6, bottom - label_height + 4), name, font=self.font_small, fill=(255, 255, 255))
+            
+            # FPS 정보
+            info_text = f"FPS: {int(current_fps)} | 얼굴: {len(display_face_names)}"
+            draw.text((10, 10), info_text, font=self.font_small, fill=(0, 255, 0))
+            
+            # 🔔 리사이즈 및 PhotoImage 변환
+            img_resized = img.resize((960, 540), Image.Resampling.NEAREST)
             photo = ImageTk.PhotoImage(image=img_resized)
             
-            # GUI 업데이트 (메인 스레드에서 안전하게)
+            # 🔔 큐에 넣기 (서브 스레드는 GUI 업데이트 금지!)
             if self.is_running:
                 try:
-                    self.video_label.imgtk = photo
-                    self.video_label.configure(image=photo, text="")
-                except:
-                    break
+                    # 큐가 꽉 찼으면 이전 프레임 버리고 새 프레임 넣기
+                    if self.frame_queue.full():
+                        try:
+                            self.frame_queue.get_nowait()
+                        except queue.Empty:
+                            pass
+                    self.frame_queue.put_nowait(photo)
+                except queue.Full:
+                    pass  # 큐가 꽉 찼으면 그냥 넘어감
         
         print("[INFO] 비디오 처리 종료")
+    
+    def update_gui(self):
+        """🔔 메인 스레드에서 큐를 확인하고 GUI를 안전하게 업데이트"""
+        if not self.is_running:
+            return  # 인식이 중지되었으면 업데이터도 종료
+        
+        try:
+            # 큐에서 프레임을 가져옴 (블로킹 없이)
+            photo = self.frame_queue.get_nowait()
+            
+            # GUI 업데이트 (메인 스레드이므로 안전!)
+            self.video_label.imgtk = photo
+            self.video_label.configure(image=photo, text="")
+        
+        except queue.Empty:
+            pass  # 큐가 비었으면 아무것도 안 함
+        
+        # 16ms(약 60fps) 후에 이 함수를 다시 실행하도록 예약
+        self.master.after(16, self.update_gui)
+    
+    def _process_log_queue(self):
+        """🔔 비동기 로깅 처리 스레드"""
+        while self.is_running:
+            try:
+                # 큐에서 로그 데이터 가져오기 (최대 1초 대기)
+                log_data = self.log_queue.get(timeout=1.0)
+                name, student_id, is_registered = log_data
+                
+                # DB에 기록 (시간이 걸려도 비디오 처리에 영향 없음)
+                try:
+                    self.manager.db.log_recognition(name, student_id, is_registered)
+                except Exception as e:
+                    print(f"[ERROR] 로그 기록 실패: {e}")
+            
+            except queue.Empty:
+                continue  # 타임아웃 시 계속
+        
+        print("[INFO] 로깅 스레드 종료")
 
