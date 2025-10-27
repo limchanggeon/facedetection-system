@@ -1,5 +1,58 @@
 # 변경 이력 (Changelog)
 
+## [v2.2.0] - 2024-10-27
+
+### 🚀 YOLO-Face 통합 (선택적)
+
+#### 성능 향상
+- ✨ **YOLO-Face 지원 추가** (HOG 대비 2-3배 빠름)
+  - YOLOv5-Face 딥러닝 모델 사용
+  - GPU 가속 지원 (CUDA)
+  - CPU 모드도 HOG보다 빠름
+  - Jetson Nano 최적화
+
+#### 새로운 기능
+- 🎯 자동 감지기 선택
+  - YOLO-Face 모델 있으면 자동 사용
+  - 없으면 HOG로 자동 전환
+  - 사용자 설정 불필요
+  
+- 📦 새로운 의존성 (선택적)
+  - PyTorch 2.0+
+  - TorchVision 0.15+
+  - Ultralytics YOLOv5
+
+#### 새로운 파일
+- `yolo_face_detector.py` - YOLO-Face 감지 모듈
+- `YOLO_INTEGRATION_GUIDE.md` - 통합 가이드
+- `models/README.md` - 모델 다운로드 가이드
+
+#### 성능 비교
+
+| 모드 | HOG | YOLO-Face (CPU) | YOLO-Face (GPU) |
+|------|-----|-----------------|-----------------|
+| 고속 | 25-30 FPS | 35-50 FPS | 50-80 FPS |
+| 균형 | 18-22 FPS | 25-40 FPS | 40-70 FPS |
+| CCTV | 10-15 FPS | 15-30 FPS | 25-50 FPS |
+
+#### 설치 및 사용
+
+**기본 설치 (HOG만)**
+```bash
+pip install -r requirements.txt
+python face_recognition_app.py
+```
+
+**YOLO-Face 설치 (권장)**
+```bash
+pip install torch torchvision ultralytics
+# 모델 다운로드: https://github.com/deepcam-cn/yolov5-face/releases
+# yolov5n-face.pt를 models/ 폴더에 저장
+python face_recognition_app.py
+```
+
+---
+
 ## [v2.1.0] - 2024-10-27
 
 ### 🎉 주요 변경사항

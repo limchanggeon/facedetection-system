@@ -10,6 +10,7 @@ import threading
 import time
 import numpy as np
 from database import FaceDatabase
+from yolo_face_detector import YOLOFaceDetector
 
 class ScreenManager:
     """화면 전환을 관리하는 클래스"""
@@ -854,6 +855,16 @@ class RecognitionScreen(tk.Frame):
         self.is_running = False
         self.recognition_thread = None
         
+        # YOLO-Face 초기화
+        try:
+            self.yolo_detector = YOLOFaceDetector(conf_threshold=0.3)
+            self.use_yolo = True
+            print("[INFO] YOLO-Face 감지기 초기화 완료")
+        except Exception as e:
+            print(f"[WARN] YOLO-Face 초기화 실패, HOG 사용: {e}")
+            self.yolo_detector = None
+            self.use_yolo = False
+        
         # 한글 폰트 설정
         try:
             self.font = ImageFont.truetype("/System/Library/Fonts/AppleSDGothicNeo.ttc", 30)
@@ -1058,15 +1069,24 @@ class RecognitionScreen(tk.Frame):
                 
                 # 얼굴 위치 및 인코딩
                 try:
-                    face_locations = face_recognition.face_locations(
-                        rgb_small_frame,
-                        model="hog",
-                        number_of_times_to_upsample=self.manager.settings['upsample_times']
-                    )
+                    # YOLO-Face 또는 HOG 사용
+                    if self.use_yolo and self.yolo_detector:
+                        face_locations = self.yolo_detector.detect_faces(
+                            rgb_small_frame,
+                            upsample_times=self.manager.settings['upsample_times']
+                        )
+                    else:
+                        face_locations = face_recognition.face_locations(
+                            rgb_small_frame,
+                            model="hog",
+                            number_of_times_to_upsample=self.manager.settings['upsample_times']
+                        )
+                    
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
                     
                     if len(face_locations) > 0:
-                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨")
+                        detector_type = "YOLO-Face" if self.use_yolo else "HOG"
+                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨 ({detector_type})")
                 except Exception as e:
                     print(f"[ERROR] 얼굴 인식 오류: {e}")
                     continue
