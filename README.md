@@ -1,4 +1,4 @@
-# 🎯 얼굴 인식 시스템 v2.3.4
+# 🎯 얼굴 인식 시스템 v2.3.5
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
@@ -6,7 +6,7 @@
 
 SQLite 데이터베이스와 멀티 스크린 GUI를 갖춘 실시간 얼굴 인식 시스템입니다.
 
-> **🚀 v2.3.4 업데이트**: 성능 대폭 최적화! FPS 40-60% 향상 ⚡
+> **🚀 v2.3.5 업데이트**: 화면 끊김 완전 해결! 부드러운 30fps 실시간 영상 🎥
 
 ---
 
@@ -283,4 +283,4 @@ GitHub에서 Issue와 Pull Request를 환영합니다!
 
 ---
 
-**버전**: v2.3.4 | **마지막 업데이트**: 2024-10-27
+**버전**: v2.3.5 | **마지막 업데이트**: 2024-10-27
