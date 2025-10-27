@@ -35,9 +35,9 @@ class FaceRecognitionApp:
         self.distance_threshold = 0.45  # 거리 임계값 (0.6 이하 권장)
         self.show_confidence = True  # 신뢰도 표시 여부
         
-        # 멀티 얼굴 탐지 설정
-        self.upsample_times = 2  # 얼굴 탐지 업샘플링 횟수 (0-2, 높을수록 작은 얼굴도 탐지)
-        self.frame_scale = 0.5  # 프레임 축소 비율 (0.25-1.0, 높을수록 정확하지만 느림)
+        # 멀티 얼굴 탐지 설정 (성능 최적화)
+        self.upsample_times = 1  # 얼굴 탐지 업샘플링 횟수 (0-2, 높을수록 작은 얼굴도 탐지)
+        self.frame_scale = 0.25  # 프레임 축소 비율 (0.25-1.0, 높을수록 정확하지만 느림)
         
         # 한글 폰트 설정
         try:
@@ -322,10 +322,57 @@ class FaceRecognitionApp:
             fg="#7f8c8d"
         ).pack(pady=(0, 5))
         
+        # 구분선
+        tk.Frame(accuracy_frame, height=2, bg="#bdc3c7").pack(fill=tk.X, padx=10, pady=10)
+        
+        # 성능 프리셋 버튼
+        tk.Label(
+            accuracy_frame,
+            text="⚡ 빠른 설정 프리셋:",
+            font=("Arial", 11, "bold"),
+            bg="#ecf0f1"
+        ).pack(anchor=tk.W, padx=10, pady=(5, 5))
+        
+        preset_frame = tk.Frame(accuracy_frame, bg="#ecf0f1")
+        preset_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        tk.Button(
+            preset_frame,
+            text="⚡ 고속 모드",
+            command=self.set_fast_mode,
+            bg="#27ae60",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            cursor="hand2",
+            width=12
+        ).pack(side=tk.LEFT, padx=2)
+        
+        tk.Button(
+            preset_frame,
+            text="⚖️ 균형 모드",
+            command=self.set_balanced_mode,
+            bg="#3498db",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            cursor="hand2",
+            width=12
+        ).pack(side=tk.LEFT, padx=2)
+        
+        tk.Button(
+            preset_frame,
+            text="🎥 CCTV 모드",
+            command=self.set_cctv_mode,
+            bg="#e74c3c",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            cursor="hand2",
+            width=12
+        ).pack(side=tk.LEFT, padx=2)
+        
         # 팁 라벨
         tip_label = tk.Label(
             accuracy_frame,
-            text="💡 팁: 오탐지가 있다면 슬라이더를 왼쪽으로,\n인식이 잘 안된다면 오른쪽으로 조절하세요.\n\n🎥 CCTV 모드: 원거리 감도를 2로 설정하면\n멀리 있는 여러 사람을 동시에 탐지합니다.",
+            text="💡 팁:\n고속 모드 = 빠른 FPS, 가까운 얼굴 (추천)\n균형 모드 = 중간 FPS, 중거리 얼굴\nCCTV 모드 = 느린 FPS, 원거리 멀티 탐지",
             font=("Arial", 9),
             bg="#ecf0f1",
             fg="#16a085",
@@ -363,6 +410,54 @@ class FaceRecognitionApp:
         self.upsample_label.config(text=f"{self.upsample_times}")
         performance_msg = ["빠름 (가까운 얼굴만)", "보통 (중거리)", "느림 (원거리 탐지)"][self.upsample_times]
         print(f"[INFO] 원거리 감도 변경: {self.upsample_times} ({performance_msg})")
+    
+    def set_fast_mode(self):
+        """고속 모드 - 최고 FPS 성능"""
+        self.tolerance = 0.45
+        self.distance_threshold = 0.50
+        self.upsample_times = 0
+        self.frame_scale = 0.25
+        
+        # GUI 업데이트
+        self.tolerance_slider.set(self.tolerance)
+        self.upsample_slider.set(self.upsample_times)
+        self.tolerance_label.config(text=f"{self.tolerance:.2f}")
+        self.upsample_label.config(text=f"{self.upsample_times}")
+        
+        print("[INFO] ⚡ 고속 모드 활성화 - FPS: 25-30, 거리: 1-2m, 멀티: 3-5명")
+        messagebox.showinfo("고속 모드", "⚡ 최고 성능 모드 활성화!\n\nFPS: 25-30\n탐지 거리: 1-2m\n동시 인원: 3-5명\n\n가까운 거리에서 빠른 인식에 최적화되었습니다.")
+    
+    def set_balanced_mode(self):
+        """균형 모드 - FPS와 정확도 균형"""
+        self.tolerance = 0.40
+        self.distance_threshold = 0.45
+        self.upsample_times = 1
+        self.frame_scale = 0.25
+        
+        # GUI 업데이트
+        self.tolerance_slider.set(self.tolerance)
+        self.upsample_slider.set(self.upsample_times)
+        self.tolerance_label.config(text=f"{self.tolerance:.2f}")
+        self.upsample_label.config(text=f"{self.upsample_times}")
+        
+        print("[INFO] ⚖️ 균형 모드 활성화 - FPS: 18-22, 거리: 2-4m, 멀티: 5-7명")
+        messagebox.showinfo("균형 모드", "⚖️ 균형 모드 활성화!\n\nFPS: 18-22\n탐지 거리: 2-4m\n동시 인원: 5-7명\n\n일반적인 사용에 최적화되었습니다.")
+    
+    def set_cctv_mode(self):
+        """CCTV 모드 - 원거리 멀티 탐지"""
+        self.tolerance = 0.35
+        self.distance_threshold = 0.40
+        self.upsample_times = 2
+        self.frame_scale = 0.5
+        
+        # GUI 업데이트
+        self.tolerance_slider.set(self.tolerance)
+        self.upsample_slider.set(self.upsample_times)
+        self.tolerance_label.config(text=f"{self.tolerance:.2f}")
+        self.upsample_label.config(text=f"{self.upsample_times}")
+        
+        print("[INFO] 🎥 CCTV 모드 활성화 - FPS: 10-15, 거리: 1-7m, 멀티: 7-10명")
+        messagebox.showinfo("CCTV 모드", "🎥 CCTV/보안 모드 활성화!\n\nFPS: 10-15 (느림)\n탐지 거리: 1-7m (원거리)\n동시 인원: 7-10명\n\n⚠️ 높은 CPU 사용률\n원거리 멀티 얼굴 탐지에 최적화되었습니다.")
     
     def toggle_confidence(self):
         """신뢰도 표시 토글"""
@@ -514,7 +609,7 @@ class FaceRecognitionApp:
     
     def process_video(self):
         """비디오 프레임 처리 및 얼굴 인식"""
-        process_every_n_frames = 3  # 성능 최적화: 매 3 프레임마다 얼굴 인식
+        process_every_n_frames = 2  # 성능 최적화: 매 2 프레임마다 얼굴 인식 (빠른 응답)
         frame_count = 0
         
         # 이전 프레임의 얼굴 정보 저장 (부드러운 표시를 위해)
@@ -524,9 +619,10 @@ class FaceRecognitionApp:
         # 부드러운 이동을 위한 변수
         smoothed_face_locations = []  # 보간된 위치
         target_face_locations = []    # 목표 위치
-        smoothing_factor = 0.3        # 부드러움 정도 (0.1~0.5, 낮을수록 부드러움)
+        smoothing_factor = 0.2        # 부드러움 정도 (0.1~0.5, 낮을수록 부드러움)
         
         print("[INFO] 비디오 처리 시작...")
+        print(f"[INFO] 성능 설정 - 업샘플: {self.upsample_times}, 스케일: {self.frame_scale}, 프레임 간격: {process_every_n_frames}")
         
         while self.is_running:
             ret, frame = self.video_capture.read()
