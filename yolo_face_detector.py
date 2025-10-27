@@ -41,20 +41,29 @@ class YOLOFaceDetector:
         
         # 모델 로드
         try:
-            print(f"[INFO] YOLOv5-Face 모델 로드 중: {model_path}")
-            # YOLOv5 torch.hub.load 사용
-            self.model = torch.hub.load(
-                'ultralytics/yolov5',
-                'custom',
-                path=model_path,
-                source='github',
-                force_reload=False,
-                trust_repo=True
-            )
+            print(f"[INFO] YOLO-Face 모델 로드 중: {model_path}")
             
-            self.model.conf = conf_threshold
-            self.model.to(self.device)
-            print("[INFO] YOLOv5-Face 모델 로드 완료")
+            # YOLOv8이면 ultralytics YOLO 사용
+            if 'yolov8' in model_path:
+                from ultralytics import YOLO
+                self.model = YOLO(model_path)
+                self.model.conf = conf_threshold
+                self.is_yolov8 = True
+                print("[INFO] YOLOv8-Face 모델 로드 완료")
+            else:
+                # YOLOv5이면 torch.hub.load 사용
+                self.model = torch.hub.load(
+                    'ultralytics/yolov5',
+                    'custom',
+                    path=model_path,
+                    source='github',
+                    force_reload=False,
+                    trust_repo=True
+                )
+                self.model.conf = conf_threshold
+                self.model.to(self.device)
+                self.is_yolov8 = False
+                print("[INFO] YOLOv5-Face 모델 로드 완료")
         except Exception as e:
             raise RuntimeError(f"YOLO-Face 모델 로드 실패: {e}")
     
@@ -64,12 +73,14 @@ class YOLOFaceDetector:
         if not model_dir.exists():
             return None
         
-        # 가능한 모델 파일명
+        # 가능한 모델 파일명 (YOLOv8-Face 우선)
         model_names = [
-            'yolov5n-face.pt',
-            'yolov5s-face.pt',
-            'yolov5m-face.pt',
-            'yolov5n-0.5.pt'
+            'yolov8n-face.pt',  # YOLOv8 nano (가장 빠름)
+            'yolov8s-face.pt',  # YOLOv8 small
+            'yolov8m-face.pt',  # YOLOv8 medium
+            'yolov5n-face.pt',  # YOLOv5 nano (하위 호환)
+            'yolov5s-face.pt',  # YOLOv5 small
+            'yolov5m-face.pt',  # YOLOv5 medium
         ]
         
         for name in model_names:
@@ -106,14 +117,23 @@ class YOLOFaceDetector:
             scale = 1
         
         # YOLO 추론
-        results = self.model(image_upsampled)
+        results = self.model(image_upsampled, verbose=False)
         
-        # 결과 파싱
-        detections = results.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2, conf, cls]
+        # 결과 파싱 (YOLOv8과 YOLOv5 호환)
+        if self.is_yolov8:
+            # YOLOv8: results[0].boxes
+            boxes = results[0].boxes
+            detections = boxes.xyxy.cpu().numpy()  # [x1, y1, x2, y2]
+            confidences = boxes.conf.cpu().numpy()  # confidence scores
+        else:
+            # YOLOv5: results.xyxy[0]
+            detections_raw = results.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2, conf, cls]
+            detections = detections_raw[:, :4]
+            confidences = detections_raw[:, 4]
         
         face_locations = []
-        for det in detections:
-            x1, y1, x2, y2, conf, cls = det
+        for i, (x1, y1, x2, y2) in enumerate(detections):
+            conf = confidences[i]
             
             # 신뢰도 필터링
             if conf < self.conf_threshold:
@@ -151,7 +171,7 @@ class YOLOFaceDetector:
 
 def download_yolo_face_model():
     """
-    YOLOv5-face 모델 다운로드 및 설치
+    YOLOv8-face 모델 다운로드 및 설치
     최초 실행 시 한 번만 실행
     """
     import os
@@ -160,38 +180,37 @@ def download_yolo_face_model():
     model_dir = Path("models")
     model_dir.mkdir(exist_ok=True)
     
-    # YOLOv5-face 모델 옵션
+    # YOLOv8-face 모델 옵션
     model_options = [
         {
-            'name': 'yolov5n-0.5.pt',  # 가장 작고 빠른 모델
-            'url': 'https://github.com/deepcam-cn/yolov5-face/releases/download/v0.0.0/yolov5n-0.5.pt'
+            'name': 'yolov8n-face.pt',  # 가장 작고 빠른 모델 (권장)
+            'url': 'https://github.com/derronqi/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt'
         },
         {
-            'name': 'yolov5n-face.pt',
-            'url': 'https://github.com/deepcam-cn/yolov5-face/releases/download/v0.0.0/yolov5n-face.pt'
+            'name': 'yolov8s-face.pt',
+            'url': 'https://github.com/derronqi/yolov8-face/releases/download/v0.0.0/yolov8s-face.pt'
         },
         {
-            'name': 'yolov5s-face.pt',
-            'url': 'https://github.com/deepcam-cn/yolov5-face/releases/download/v0.0.0/yolov5s-face.pt'
+            'name': 'yolov8m-face.pt',
+            'url': 'https://github.com/derronqi/yolov8-face/releases/download/v0.0.0/yolov8m-face.pt'
         }
     ]
     
     # 이미 다운로드된 모델 확인
     for option in model_options:
         model_path = model_dir / option['name']
-        if model_path.exists():
+        if model_path.exists() and model_path.stat().st_size > 1000000:
             print(f"[INFO] 기존 모델 사용: {model_path}")
             return str(model_path)
     
-    # wget으로 다운로드 시도 (더 안정적)
-    print("[INFO] YOLOv5-Face 모델 다운로드 중...")
+    # curl로 다운로드 시도
+    print("[INFO] YOLOv8-Face 모델 다운로드 중...")
     for option in model_options[:1]:  # 가장 작은 모델만 시도
         model_path = model_dir / option['name']
         url = option['url']
         
         try:
             print(f"[INFO] 다운로드: {url}")
-            # wget 명령어 사용
             import subprocess
             result = subprocess.run(
                 ['curl', '-L', '-o', str(model_path), url],
@@ -200,8 +219,8 @@ def download_yolo_face_model():
                 timeout=300
             )
             
-            if result.returncode == 0 and model_path.exists():
-                print(f"[INFO] 다운로드 완료: {model_path}")
+            if result.returncode == 0 and model_path.exists() and model_path.stat().st_size > 1000000:
+                print(f"[INFO] 다운로드 완료: {model_path} ({model_path.stat().st_size / 1024 / 1024:.1f}MB)")
                 return str(model_path)
             else:
                 print(f"[WARN] 다운로드 실패")
@@ -213,12 +232,10 @@ def download_yolo_face_model():
     
     print("[ERROR] 자동 다운로드 실패")
     print("[INFO] 수동 다운로드 방법:")
-    print("  1. 브라우저에서 https://github.com/deepcam-cn/yolov5-face/releases 방문")
-    print("  2. yolov5n-0.5.pt 또는 yolov5n-face.pt 다운로드")
+    print("  1. 브라우저에서 https://github.com/derronqi/yolov8-face/releases 방문")
+    print("  2. yolov8n-face.pt (3MB, 권장) 다운로드")
     print(f"  3. models/ 폴더에 저장")
     
-    # 대안: ultralytics의 일반 YOLOv8 사용
-    print("[INFO] 대안: YOLOv8n (얼굴 전용은 아니지만 사람 감지 가능)")
     return None
 
 
