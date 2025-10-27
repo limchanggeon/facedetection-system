@@ -28,9 +28,32 @@ class RetinaFaceDetector:
             model_path = self._find_model()
         
         if model_path is None:
-            print("[WARN] RetinaFace 모델을 찾을 수 없습니다")
-            print("[INFO] 다운로드: models/README.md 참조")
-            raise FileNotFoundError("RetinaFace 모델이 필요합니다")
+            error_msg = """
+╔════════════════════════════════════════════════════════════════╗
+║          ⚠️  RetinaFace 모델 파일이 없습니다                  ║
+╚════════════════════════════════════════════════════════════════╝
+
+RetinaFace를 사용하려면 모델 파일을 다운로드해야 합니다.
+
+🚀 빠른 설치 (자동):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  python download_retinaface.py
+
+📖 수동 설치:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. pip install insightface onnxruntime
+  2. python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(providers=['CPUExecutionProvider']); app.prepare(ctx_id=0)"
+  3. cp ~/.insightface/models/buffalo_l/det_10g.onnx models/retinaface.onnx
+
+💡 대안:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • YOLO-Face 사용 (이미 설치됨): 환경 설정에서 선택
+  • HOG 사용 (기본 내장): 항상 사용 가능
+
+자세한 내용: RETINAFACE_GUIDE.md
+            """
+            print(error_msg)
+            raise FileNotFoundError("RetinaFace 모델 파일이 없습니다. 위 안내를 참조하세요.")
         
         # 모델 로드 (OpenCV DNN 사용)
         try:
