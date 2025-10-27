@@ -38,3 +38,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# YOLO Models (large files)
+models/*.pt
+models/*.onnx
+models/*.engine
+models/*.weights
