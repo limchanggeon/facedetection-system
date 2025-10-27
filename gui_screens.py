@@ -66,7 +66,7 @@ class LobbyScreen(tk.Frame):
         
         tk.Label(
             title_frame,
-            text="🎯 실시간 얼굴 인식 시스템",
+            text="실시간 얼굴 인식 시스템",
             font=("Arial", 36, "bold"),
             bg="#2c3e50",
             fg="white"
@@ -85,15 +85,15 @@ class LobbyScreen(tk.Frame):
         button_frame.pack(pady=30)
         
         buttons = [
-            ("🎥 얼굴 인식 시작", "recognition", "#27ae60", 200, 80),
-            ("👤 얼굴 등록 관리", "register", "#3498db", 200, 80),
-            ("💾 데이터베이스 관리", "database", "#f39c12", 200, 80),
-            ("⚙️ 환경 설정", "settings", "#9b59b6", 200, 80),
+            ("얼굴 인식 시작", "recognition", "#27ae60"),
+            ("얼굴 등록 관리", "register", "#3498db"),
+            ("데이터베이스 관리", "database", "#f39c12"),
+            ("환경 설정", "settings", "#9b59b6"),
         ]
         
         row = 0
         col = 0
-        for text, screen, color, width, height in buttons:
+        for text, screen, color in buttons:
             btn = tk.Button(
                 button_frame,
                 text=text,
@@ -101,11 +101,13 @@ class LobbyScreen(tk.Frame):
                 bg=color,
                 fg="white",
                 font=("Arial", 16, "bold"),
-                width=width,
-                height=height,
+                width=20,
+                height=3,
                 cursor="hand2",
                 relief=tk.RAISED,
-                bd=3
+                bd=3,
+                activebackground=color,
+                activeforeground="white"
             )
             btn.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
             
@@ -122,8 +124,8 @@ class LobbyScreen(tk.Frame):
         
         tk.Label(
             stats_frame,
-            text=f"📊 등록된 얼굴: {registered_count}명",
-            font=("Arial", 14),
+            text=f"등록된 얼굴: {registered_count}명",
+            font=("Arial", 14, "bold"),
             bg="#34495e",
             fg="white",
             pady=15
@@ -135,7 +137,7 @@ class LobbyScreen(tk.Frame):
         
         tk.Label(
             footer_frame,
-            text="© 2025 Lim Changgeon | MIT License",
+            text="Lim Changgeon | MIT License",
             font=("Arial", 10),
             bg="#2c3e50",
             fg="#7f8c8d"
@@ -157,7 +159,7 @@ class SettingsScreen(tk.Frame):
         
         tk.Label(
             header,
-            text="⚙️ 환경 설정",
+            text="환경 설정",
             font=("Arial", 24, "bold"),
             bg="#34495e",
             fg="white"
@@ -165,13 +167,17 @@ class SettingsScreen(tk.Frame):
         
         tk.Button(
             header,
-            text="← 뒤로 가기",
+            text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
             fg="white",
             font=("Arial", 12, "bold"),
-            cursor="hand2"
-        ).pack(side=tk.RIGHT, padx=20, pady=20)
+            cursor="hand2",
+            width=12,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
+        ).pack(side=tk.RIGHT, padx=20, pady=15)
         
         # 스크롤 가능한 컨텐츠
         canvas = tk.Canvas(self, bg="#ecf0f1", highlightthickness=0)
@@ -189,7 +195,7 @@ class SettingsScreen(tk.Frame):
         # 카메라 설정
         camera_frame = tk.LabelFrame(
             scrollable_frame,
-            text="📷 카메라 설정",
+            text=" 카메라 설정 ",
             font=("Arial", 16, "bold"),
             bg="#ecf0f1",
             fg="#2c3e50",
@@ -208,9 +214,9 @@ class SettingsScreen(tk.Frame):
         self.camera_var = tk.IntVar(value=self.manager.settings['camera_index'])
         
         cameras = [
-            ("💻 노트북 내장 카메라 (카메라 0)", 0),
-            ("🎥 외장 USB 카메라 1", 1),
-            ("🎥 외장 USB 카메라 2", 2),
+            ("카메라 0 - 노트북 내장 카메라", 0),
+            ("카메라 1 - 외장 USB 카메라", 1),
+            ("카메라 2 - 외장 USB 카메라", 2),
         ]
         
         for text, value in cameras:
@@ -226,12 +232,16 @@ class SettingsScreen(tk.Frame):
         
         tk.Button(
             camera_frame,
-            text="🔍 카메라 테스트",
+            text="카메라 테스트",
             command=self.test_camera,
             bg="#3498db",
             fg="white",
-            font=("Arial", 11, "bold"),
-            cursor="hand2"
+            font=("Arial", 12, "bold"),
+            cursor="hand2",
+            width=15,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
         ).pack(pady=10)
         
         self.camera_status = tk.Label(
@@ -246,7 +256,7 @@ class SettingsScreen(tk.Frame):
         # 성능 프리셋
         preset_frame = tk.LabelFrame(
             scrollable_frame,
-            text="⚡ 성능 프리셋",
+            text=" 성능 프리셋 (권장) ",
             font=("Arial", 16, "bold"),
             bg="#ecf0f1",
             fg="#2c3e50",
@@ -256,9 +266,9 @@ class SettingsScreen(tk.Frame):
         preset_frame.pack(fill=tk.X, padx=20, pady=10)
         
         presets = [
-            ("⚡ 고속 모드 (25-30 FPS, 가까운 거리)", "fast", "#27ae60"),
-            ("⚖️ 균형 모드 (18-22 FPS, 중거리)", "balanced", "#3498db"),
-            ("🎥 CCTV 모드 (10-15 FPS, 원거리)", "cctv", "#e74c3c"),
+            ("고속 모드 (25-30 FPS, 가까운 거리)", "fast", "#27ae60"),
+            ("균형 모드 (18-22 FPS, 중거리)", "balanced", "#3498db"),
+            ("CCTV 모드 (10-15 FPS, 원거리)", "cctv", "#e74c3c"),
         ]
         
         for text, mode, color in presets:
@@ -270,13 +280,17 @@ class SettingsScreen(tk.Frame):
                 fg="white",
                 font=("Arial", 12, "bold"),
                 cursor="hand2",
-                height=2
+                height=2,
+                relief=tk.RAISED,
+                bd=2,
+                activebackground=color,
+                activeforeground="white"
             ).pack(fill=tk.X, pady=5)
         
         # 고급 설정
         advanced_frame = tk.LabelFrame(
             scrollable_frame,
-            text="🔧 고급 설정",
+            text=" 고급 설정 (수동 조절) ",
             font=("Arial", 16, "bold"),
             bg="#ecf0f1",
             fg="#2c3e50",
@@ -340,13 +354,17 @@ class SettingsScreen(tk.Frame):
         # 저장 버튼
         tk.Button(
             scrollable_frame,
-            text="💾 설정 저장",
+            text="설정 저장하기",
             command=self.save_settings,
             bg="#27ae60",
             fg="white",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 16, "bold"),
             cursor="hand2",
-            height=2
+            height=3,
+            relief=tk.RAISED,
+            bd=3,
+            activebackground="#27ae60",
+            activeforeground="white"
         ).pack(fill=tk.X, padx=20, pady=20)
         
         canvas.pack(side="left", fill="both", expand=True)
@@ -362,18 +380,18 @@ class SettingsScreen(tk.Frame):
             if ret:
                 height, width = frame.shape[:2]
                 self.camera_status.config(
-                    text=f"✅ 카메라 {camera_index} 사용 가능 ({width}x{height})",
+                    text=f"카메라 {camera_index} 사용 가능 ({width}x{height})",
                     fg="#27ae60"
                 )
             else:
                 self.camera_status.config(
-                    text=f"⚠️ 카메라 {camera_index}에서 프레임을 읽을 수 없습니다",
+                    text=f"카메라 {camera_index}에서 프레임을 읽을 수 없습니다",
                     fg="#e67e22"
                 )
             cap.release()
         else:
             self.camera_status.config(
-                text=f"❌ 카메라 {camera_index}를 열 수 없습니다",
+                text=f"카메라 {camera_index}를 열 수 없습니다",
                 fg="#e74c3c"
             )
     
@@ -384,19 +402,19 @@ class SettingsScreen(tk.Frame):
                 'tolerance': 0.45,
                 'upsample_times': 0,
                 'frame_scale': 0.25,
-                'name': '⚡ 고속 모드'
+                'name': '고속 모드'
             },
             'balanced': {
                 'tolerance': 0.40,
                 'upsample_times': 1,
                 'frame_scale': 0.25,
-                'name': '⚖️ 균형 모드'
+                'name': '균형 모드'
             },
             'cctv': {
                 'tolerance': 0.35,
                 'upsample_times': 2,
                 'frame_scale': 0.5,
-                'name': '🎥 CCTV 모드'
+                'name': 'CCTV 모드'
             }
         }
         
@@ -405,7 +423,7 @@ class SettingsScreen(tk.Frame):
         self.upsample_var.set(preset['upsample_times'])
         self.manager.settings['frame_scale'] = preset['frame_scale']
         
-        messagebox.showinfo("프리셋 적용", f"{preset['name']}가 적용되었습니다!\n\n설정을 저장하려면 '설정 저장' 버튼을 클릭하세요.")
+        messagebox.showinfo("프리셋 적용", f"{preset['name']}가 적용되었습니다!\n\n설정을 저장하려면 '설정 저장하기' 버튼을 클릭하세요.")
     
     def save_settings(self):
         """설정 저장"""
@@ -434,7 +452,7 @@ class RegisterScreen(tk.Frame):
         
         tk.Label(
             header,
-            text="👤 얼굴 등록 관리",
+            text="얼굴 등록 관리",
             font=("Arial", 24, "bold"),
             bg="#34495e",
             fg="white"
@@ -442,13 +460,17 @@ class RegisterScreen(tk.Frame):
         
         tk.Button(
             header,
-            text="← 뒤로 가기",
+            text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
             fg="white",
             font=("Arial", 12, "bold"),
-            cursor="hand2"
-        ).pack(side=tk.RIGHT, padx=20, pady=20)
+            cursor="hand2",
+            width=12,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
+        ).pack(side=tk.RIGHT, padx=20, pady=15)
         
         # 메인 컨텐츠
         main_frame = tk.Frame(self, bg="#ecf0f1")
@@ -457,13 +479,17 @@ class RegisterScreen(tk.Frame):
         # 등록 버튼
         tk.Button(
             main_frame,
-            text="➕ 새 얼굴 등록하기",
+            text="새 얼굴 등록하기",
             command=self.register_new_face,
             bg="#27ae60",
             fg="white",
-            font=("Arial", 16, "bold"),
+            font=("Arial", 18, "bold"),
             cursor="hand2",
-            height=3
+            height=3,
+            relief=tk.RAISED,
+            bd=3,
+            activebackground="#27ae60",
+            activeforeground="white"
         ).pack(fill=tk.X, pady=10)
         
         # 안내 메시지
@@ -472,8 +498,8 @@ class RegisterScreen(tk.Frame):
         
         tk.Label(
             info_frame,
-            text="💡 등록 방법:\n1. 이름을 입력하세요\n2. 카메라를 보고 스페이스바를 누르세요\n3. ESC를 누르면 취소됩니다",
-            font=("Arial", 12),
+            text="[ 등록 방법 ]\n\n1. 이름을 입력하세요\n2. 카메라를 보고 스페이스바를 누르세요\n3. ESC를 누르면 취소됩니다",
+            font=("Arial", 13),
             bg="#3498db",
             fg="white",
             justify=tk.LEFT,
@@ -500,7 +526,7 @@ class RegisterScreen(tk.Frame):
     def update_stats(self):
         """통계 업데이트"""
         count = self.manager.db.get_registered_count()
-        self.stats_label.config(text=f"📊 현재 등록된 얼굴: {count}명")
+        self.stats_label.config(text=f"현재 등록된 얼굴: {count}명")
     
     def register_new_face(self):
         """새 얼굴 등록"""
@@ -604,7 +630,7 @@ class DatabaseScreen(tk.Frame):
         
         tk.Label(
             header,
-            text="💾 데이터베이스 관리",
+            text="데이터베이스 관리",
             font=("Arial", 24, "bold"),
             bg="#34495e",
             fg="white"
@@ -612,13 +638,17 @@ class DatabaseScreen(tk.Frame):
         
         tk.Button(
             header,
-            text="← 뒤로 가기",
+            text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
             fg="white",
             font=("Arial", 12, "bold"),
-            cursor="hand2"
-        ).pack(side=tk.RIGHT, padx=20, pady=20)
+            cursor="hand2",
+            width=12,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
+        ).pack(side=tk.RIGHT, padx=20, pady=15)
         
         # 메인 컨텐츠
         main_frame = tk.Frame(self, bg="#ecf0f1")
@@ -627,7 +657,7 @@ class DatabaseScreen(tk.Frame):
         # 통계
         stats_frame = tk.LabelFrame(
             main_frame,
-            text="📊 통계",
+            text=" 통계 ",
             font=("Arial", 14, "bold"),
             bg="#ecf0f1",
             fg="#2c3e50",
@@ -648,7 +678,7 @@ class DatabaseScreen(tk.Frame):
         # 등록된 얼굴 목록
         list_frame = tk.LabelFrame(
             main_frame,
-            text="👥 등록된 얼굴 목록",
+            text=" 등록된 얼굴 목록 ",
             font=("Arial", 14, "bold"),
             bg="#ecf0f1",
             fg="#2c3e50"
@@ -675,35 +705,44 @@ class DatabaseScreen(tk.Frame):
         
         tk.Button(
             button_frame,
-            text="🔄 새로고침",
+            text="새로고침",
             command=self.refresh_data,
             bg="#3498db",
             fg="white",
             font=("Arial", 12, "bold"),
             cursor="hand2",
-            width=15
+            width=15,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
         ).pack(side=tk.LEFT, padx=5)
         
         tk.Button(
             button_frame,
-            text="🗑️ 선택 삭제",
+            text="선택 삭제",
             command=self.delete_selected,
             bg="#e74c3c",
             fg="white",
             font=("Arial", 12, "bold"),
             cursor="hand2",
-            width=15
+            width=15,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
         ).pack(side=tk.LEFT, padx=5)
         
         tk.Button(
             button_frame,
-            text="📋 인식 로그 보기",
+            text="인식 로그",
             command=self.show_logs,
             bg="#f39c12",
             fg="white",
             font=("Arial", 12, "bold"),
             cursor="hand2",
-            width=15
+            width=15,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
         ).pack(side=tk.LEFT, padx=5)
         
         self.refresh_data()
@@ -771,7 +810,7 @@ class DatabaseScreen(tk.Frame):
         # 로그 삽입
         text_widget.insert(tk.END, "=== 최근 100개 인식 로그 ===\n\n")
         for log in logs:
-            status = "✅ 등록됨" if log[2] else "❌ 미등록"
+            status = "[등록됨]" if log[2] else "[미등록]"
             text_widget.insert(tk.END, f"{log[3]} | {log[1]} | {status}\n")
         
         text_widget.config(state=tk.DISABLED)
@@ -808,7 +847,7 @@ class RecognitionScreen(tk.Frame):
         
         tk.Label(
             header,
-            text="🎥 얼굴 인식 실행",
+            text="얼굴 인식 실행",
             font=("Arial", 24, "bold"),
             bg="#34495e",
             fg="white"
@@ -816,13 +855,17 @@ class RecognitionScreen(tk.Frame):
         
         tk.Button(
             header,
-            text="← 뒤로 가기",
+            text="< 뒤로 가기",
             command=self.go_back,
             bg="#7f8c8d",
             fg="white",
             font=("Arial", 12, "bold"),
-            cursor="hand2"
-        ).pack(side=tk.RIGHT, padx=20, pady=20)
+            cursor="hand2",
+            width=12,
+            height=2,
+            relief=tk.RAISED,
+            bd=2
+        ).pack(side=tk.RIGHT, padx=20, pady=15)
         
         # 비디오 프레임
         video_container = tk.Frame(self, bg="black")
@@ -843,28 +886,36 @@ class RecognitionScreen(tk.Frame):
         
         self.start_button = tk.Button(
             control_frame,
-            text="▶️ 시작",
+            text="시 작",
             command=self.start_recognition,
             bg="#27ae60",
             fg="white",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 16, "bold"),
             cursor="hand2",
             width=20,
-            height=2
+            height=2,
+            relief=tk.RAISED,
+            bd=3,
+            activebackground="#27ae60",
+            activeforeground="white"
         )
         self.start_button.pack(side=tk.LEFT, padx=10)
         
         self.stop_button = tk.Button(
             control_frame,
-            text="⏹️ 정지",
+            text="정 지",
             command=self.stop_recognition,
             bg="#e74c3c",
             fg="white",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 16, "bold"),
             cursor="hand2",
             width=20,
             height=2,
-            state=tk.DISABLED
+            state=tk.DISABLED,
+            relief=tk.RAISED,
+            bd=3,
+            activebackground="#e74c3c",
+            activeforeground="white"
         )
         self.stop_button.pack(side=tk.LEFT, padx=10)
         
@@ -902,7 +953,7 @@ class RecognitionScreen(tk.Frame):
         self.is_running = True
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.status_label.config(text="⚡ 실행 중...", fg="#27ae60")
+        self.status_label.config(text="실행 중...", fg="#27ae60")
         
         # 인식 스레드 시작
         self.recognition_thread = threading.Thread(target=self.process_video, daemon=True)
