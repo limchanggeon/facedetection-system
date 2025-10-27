@@ -1,26 +1,114 @@
-# 🎯 실시간 얼굴 인식 시스템
+# 🎯 얼굴 인식 시스템 v2.3.3
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](https://github.com/limchanggeon/facedetection-system)
 
-SQLite 데이터베이스와 GUI를 갖춘 실시간 얼굴 인식 시스템입니다. NVIDIA Jetson 플랫폼에 최적화되어 있습니다.
+SQLite 데이터베이스와 멀티 스크린 GUI를 갖춘 실시간 얼굴 인식 시스템입니다.
+
+---
 
 ## ✨ 주요 기능
 
-- 🎥 **실시간 멀티 얼굴 인식**: 웹캠을 통한 여러 사람 동시 인식 및 추적
-- 👥 **CCTV 스타일 탐지**: 원거리/근거리 여러 얼굴 동시 탐지 (최대 10명)
-- 👤 **얼굴 등록 시스템**: GUI를 통한 간편한 얼굴 등록
-- 💾 **SQLite 데이터베이스**: 얼굴 정보 및 인식 로그 영구 저장
-- 🎨 **직관적인 GUI**: Tkinter 기반의 사용하기 쉬운 인터페이스
-- 🔍 **바운딩 박스 표시**:
-  - 🟢 **녹색 박스**: 등록된 사람 (이름 + 신뢰도 표시)
-  - 🔴 **빨간 박스**: 미등록 (Unknown 표시)
-- 🇰🇷 **한글 지원**: 완벽한 한글 이름 표시
-- 📊 **인식 로그**: 모든 인식 내역 자동 저장
-- ⚙️ **실시간 정확도 조절**: GUI에서 매칭 엄격도 및 원거리 감도 조절
-- ⚡ **부드러운 추적**: 선형 보간을 통한 자연스러운 바운딩 박스 이동
-- 🚀 **Jetson 최적화**: NVIDIA Jetson 플랫폼에서 효율적 실행
+- 🎥 **실시간 멀티 얼굴 인식**: 최대 10명 동시 인식
+- 👥 **CCTV 스타일 탐지**: 원거리/근거리 얼굴 동시 탐지
+- 🏆 **3가지 감지 엔진**: RetinaFace(정확도) / YOLO-Face(속도) / HOG(기본)
+- 👤 **얼굴 등록 시스템**: GUI를 통한 간편한 등록
+- 💾 **SQLite 데이터베이스**: 영구 저장 및 로그 관리
+- 🎨 **직관적인 멀티스크린 GUI**: Tkinter 기반
+- 🇰🇷 **완벽한 한글 지원**: 한글 이름 표시
+- ⚙️ **실시간 설정 조절**: GUI에서 정확도/속도 조절
+- 🚀 **Jetson 최적화**: NVIDIA Jetson Nano 지원
+
+---
+
+## 🚀 빠른 시작
+
+### 1. 설치
+
+```bash
+# 저장소 클론
+git clone https://github.com/limchanggeon/facedetection-system.git
+cd facedetection-system
+
+# 가상 환경 생성 및 활성화
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+
+# 패키지 설치
+pip install -r requirements.txt
+```
+
+### 2. 실행
+
+```bash
+# 멀티 스크린 GUI (권장)
+python face_recognition_app.py
+
+# 단일 화면 GUI (레거시)
+python face_recognition_gui.py
+```
+
+### 3. 기본 사용법
+
+```
+1️⃣ 환경 설정 → 카메라 선택 및 감지 엔진 설정
+2️⃣ 얼굴 등록 관리 → 새 얼굴 등록
+3️⃣ 얼굴 인식 시작 → 실시간 인식
+4️⃣ 데이터베이스 관리 → 등록된 얼굴 확인 및 로그 보기
+```
+
+---
+
+## 📖 상세 문서
+
+### 📘 완벽 가이드
+**[📗 전체 튜토리얼 보기](docs/COMPLETE_GUIDE.md)** ⬅️ **여기를 클릭하세요!**
+
+통합 가이드에는 다음 내용이 포함되어 있습니다:
+
+- 🔧 **설치 가이드**: Windows/macOS/Linux/Jetson Nano
+- 🎨 **사용 방법**: 멀티 스크린 GUI 완벽 가이드
+- 🤖 **얼굴 감지 엔진**: RetinaFace/YOLO-Face/HOG 설치 및 비교
+- 🎯 **정확도 최적화**: 성능 튜닝 및 문제 해결
+- 🖥️ **플랫폼별 가이드**: 각 OS별 상세 설명
+- 🔍 **문제 해결**: 일반적인 문제 및 해결책
+- 💡 **고급 기능**: API 통합, 커스터마이징
+
+### 📄 기타 문서
+
+- **[CHANGELOG.md](docs/CHANGELOG.md)**: 버전 히스토리 및 변경 이력
+- **[TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**: 기술 보고서
+- **[models/README.md](models/README.md)**: 모델 다운로드 가이드
+
+---
+
+## 🏆 얼굴 감지 엔진 비교
+
+| 특징 | RetinaFace 🏆 | YOLO-Face ⚡ | HOG 🔧 |
+|------|---------------|--------------|---------|
+| **정확도** | ★★★★★ | ★★★★☆ | ★★★☆☆ |
+| **속도** | ★★★★☆ | ★★★★★ | ★★☆☆☆ |
+| **작은 얼굴** | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
+| **다양한 각도** | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
+| **GPU 가속** | ✅ | ✅ | ❌ |
+| **모델 크기** | 16MB | 6MB | 없음 |
+
+### 빠른 설치
+
+```bash
+# RetinaFace (자동 다운로드)
+python download_retinaface.py
+
+# YOLO-Face (수동 다운로드)
+cd models
+wget https://github.com/derronqi/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt
+
+# HOG (설치 불필요 - 기본 포함)
+```
+
+---
 
 ## 📋 시스템 요구사항
 
@@ -29,343 +117,163 @@ SQLite 데이터베이스와 GUI를 갖춘 실시간 얼굴 인식 시스템입�
 - **카메라**: 웹캠 또는 CSI 카메라
 - **OS**: Linux, macOS, Windows
 
-### Jetson 환경
-- **모델**: Jetson Nano, Xavier NX, AGX Orin 등
-- **JetPack**: 4.6 이상
-- **메모리**: 최소 4GB RAM (8GB 권장)
-
-## 🚀 빠른 시작
-
-### 실행 방법
-
-#### 멀티 화면 버전 (v2.0, 권장) ⭐ NEW
-```bash
-python3 face_recognition_app.py
-```
-
-#### 단일 화면 버전 (v1.0, 구버전)
-```bash
-python3 face_recognition_gui.py
-```
-
-### v2.0 새로운 기능
-- 🏠 **로비 화면**: 메뉴 중심의 직관적인 시작 화면
-- ⚙️ **환경 설정**: 카메라 선택, 성능 프리셋, 고급 설정
-- 👤 **얼굴 등록 관리**: 전용 등록 화면
-- 💾 **데이터베이스 관리**: 얼굴 삭제, 로그 확인
-- 🎥 **인식 실행**: 독립된 인식 화면
-
-자세한 사용법은 **[MULTI_SCREEN_GUIDE.md](MULTI_SCREEN_GUIDE.md)**를 참조하세요.
-
-## 🚀 빠른 시작 (구버전)
-
-### 1. 저장소 클론
-
-```bash
-git clone https://github.com/limchanggeon/facedetection-system.git
-cd facedetection-system
-```
-
-### 2. 가상 환경 생성 (권장)
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# .venv\\Scripts\\activate  # Windows
-```
-
-### 3. 패키지 설치
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. 프로그램 실행
-
-```bash
-python3 face_recognition_gui.py
-```
-
-## 📖 사용 방법
-
-### 1️⃣ 얼굴 등록
-
-1. **"새 얼굴 등록"** 버튼 클릭
-2. 이름 입력 (예: "홍길동")
-3. 카메라를 보고 **스페이스바**를 눌러 촬영
-4. ESC로 취소 가능
-
-### 2️⃣ 정확도 설정 (중요!)
-
-**⚡ 빠른 설정 (권장):**
-- **고속 모드**: 25-30 FPS, 가까운 거리 (일반 사용, 기본값)
-- **균형 모드**: 18-22 FPS, 중거리 (회의실)
-- **CCTV 모드**: 10-15 FPS, 원거리 멀티 탐지 (보안)
-
-**📊 수동 조정:**
-1. **매칭 엄격도 조절**:
-   - 오탐지가 있으면 왼쪽(엄격)으로
-   - 인식이 안 되면 오른쪽(관대)으로
-   
-2. **원거리 감도 조절**:
-   - 0: 가까운 얼굴만 (빠름) ⚡
-   - 1: 중거리 (균형)
-   - 2: 원거리 CCTV 모드 (느림)
-
-3. **신뢰도 표시**: 체크하면 각 얼굴 옆에 인식 확률 표시
-
-### 3️⃣ 얼굴 인식 시작
-
-1. **"얼굴 인식 시작"** 버튼 클릭
-2. 웹캠으로 실시간 인식
-   - 🟢 **녹색 박스** + 이름 (신뢰도%): 등록된 사람
-   - 🔴 **빨간 박스** + "Unknown": 미등록
-3. **여러 사람 동시 인식** - CCTV 모드에서 최대 10명
-
-### 4️⃣ 얼굴 관리
-
-- 목록에서 이름 선택 → **"선택한 얼굴 삭제"** 버튼 클릭
-- 통계에서 등록된 얼굴 수 확인
-
-### 5️⃣ 정지
-
-- **"정지"** 버튼으로 인식 중지
-
-## 🎯 정확도 최적화
-
-자세한 정확도 조정 가이드는 **[ACCURACY_GUIDE.md](ACCURACY_GUIDE.md)**를 참조하세요.
-
-주요 내용:
-- 오탐지(False Positive) 해결 방법
-- 미인식(False Negative) 해결 방법
-- CCTV/보안 모드 최적 설정
-- 신뢰도 점수 해석
-- 성능 vs 정확도 트레이드오프
-
-## 📂 프로젝트 구조
-
-```
-facedetection-system/
-├── face_recognition_gui.py   # GUI 메인 프로그램
-├── database.py                # SQLite 데이터베이스 관리
-├── requirements.txt           # Python 패키지 목록
-├── README.md                  # 프로젝트 설명서
-├── ACCURACY_GUIDE.md         # 정확도 최적화 가이드 ⭐ NEW
-├── JETSON_TUTORIAL.md        # Jetson 환경 튜토리얼
-├── WINDOWS_TUTORIAL.md       # Windows 환경 튜토리얼
-├── LICENSE                    # MIT 라이센스
-├── .gitignore                # Git 무시 파일
-└── face_recognition.db       # SQLite 데이터베이스 (자동 생성)
-```
-
-## 💾 데이터베이스 구조
-
-### `registered_faces` 테이블
-- `id`: 고유 ID (Primary Key)
-- `name`: 등록된 사람 이름
-- `encoding`: 얼굴 인코딩 데이터 (BLOB)
-- `registered_date`: 등록 날짜 (TIMESTAMP)
-
-### `recognition_logs` 테이블
-- `id`: 고유 ID (Primary Key)
-- `name`: 인식된 이름 (Unknown 포함)
-- `is_registered`: 등록 여부 (1: 등록됨, 0: 미등록)
-- `timestamp`: 인식 시간 (TIMESTAMP)
-
-## ⚙️ 설정 및 최적화
-
-### GUI에서 실시간 조정 가능 ⭐ NEW
-
-프로그램 실행 중 GUI에서 직접 조정:
-
-1. **매칭 엄격도 (Tolerance)**: 0.3 ~ 0.6
-   - 왼쪽(낮음): 더 엄격, 오탐지 감소
-   - 오른쪽(높음): 더 관대, 미인식 감소
-
-2. **원거리 감도 (Upsample)**: 0 ~ 2
-   - 0: 빠름, 가까운 얼굴만
-   - 1: 보통, 중거리 얼굴
-   - 2: 느림, CCTV 모드 (원거리 멀티 탐지)
-
-3. **신뢰도 표시**: 체크박스로 ON/OFF
-
-### 코드에서 고급 설정
-
-`face_recognition_gui.py`에서:
-
-```python
-# 프레임 축소 비율 (0.25~1.0, 높을수록 정확하지만 느림)
-self.frame_scale = 0.5
-
-# 프레임 간격 (3~10, 높을수록 빠르지만 부드러움 감소)
-process_every_n_frames = 3
-
-# 부드러움 정도 (0.1~0.5, 낮을수록 부드럽지만 반응 느림)
-smoothing_factor = 0.3
-```
-
-### 멀티 얼굴 탐지 ⭐ NEW
-
-- **자동 지원**: 여러 사람을 동시에 탐지 및 인식
-- **최대 인원**: 일반 PC 10명, Jetson 5-7명
-- **최적 설정**: 원거리 감도 = 2 (CCTV 모드)
-
-## 🎮 플랫폼별 환경 설정
-
-### NVIDIA Jetson
-Jetson 플랫폼에서 실행하려면 **[JETSON_TUTORIAL.md](JETSON_TUTORIAL.md)**를 참조하세요.
-
-주요 내용:
-- CUDA 지원 dlib 설치
-- CSI 카메라 설정
-- 성능 최적화
-- 문제 해결
-
-### Windows (Intel i5 등)
-Windows 환경에서 실행하려면 **[WINDOWS_TUTORIAL.md](WINDOWS_TUTORIAL.md)**를 참조하세요.
-
-주요 내용:
-- Visual Studio Build Tools 설치
-- dlib 설치 가이드
-- 카메라 설정
-- 한글 폰트 설정
-- 성능 최적화
-
-## 📊 성능
-
-### 일반 PC (Intel i5, 16GB RAM)
-- **고속 모드**: 25-30 FPS ⚡ (가까운 거리, 3-5명)
-- **균형 모드**: 18-22 FPS (중거리, 5-7명)
-- **CCTV 모드**: 10-15 FPS (원거리, 7-10명)
-- **해상도**: 1056x594
-- **모델**: HOG
-
-### Jetson Nano (4GB)
-- **고속 모드**: 15-20 FPS
-- **균형 모드**: 10-15 FPS
-- **CCTV 모드**: 5-8 FPS
-- **해상도**: 1056x594
-- **모델**: HOG
-
-### Jetson Xavier NX
-- **고속 모드**: 25-30 FPS
-- **균형 모드**: 20-25 FPS
-- **CCTV 모드**: 12-18 FPS
-- **해상도**: 1056x594
-- **모델**: HOG
-
-### Windows PC (Intel i7, 16GB RAM)
-- **고속 모드**: 25-30 FPS ⚡
-- **균형 모드**: 20-25 FPS
-- **CCTV 모드**: 12-15 FPS
-- **해상도**: 1056x594
-- **모델**: HOG
-
-## 🛠️ 기술 스택
-
-### 핵심 라이브러리
-- **Python**: 3.6+
-- **face_recognition**: 얼굴 인코딩 및 비교
-- **OpenCV**: 비디오 처리
-- **Tkinter**: GUI 프레임워크
-- **PIL/Pillow**: 이미지 처리 및 한글 렌더링
-- **SQLite3**: 데이터베이스
-- **NumPy**: 수치 연산
-
-### 얼굴 감지 엔진 (선택 가능) ⭐ NEW
-
-프로그램은 다음 순서로 자동 감지:
-
-1. **RetinaFace** (최고 정확도) 🏆
-   - 매우 높은 정확도
-   - 작은 얼굴, 다양한 각도 탁월
-   - 얼굴 랜드마크 5개 제공
-   - 모델: 약 10-100MB
-   - 설치: `pip install insightface onnxruntime`
-   - 다운로드: `python download_retinaface.py`
-   - 가이드: [RETINAFACE_GUIDE.md](RETINAFACE_GUIDE.md)
-
-2. **YOLO-Face** (최고 속도)
-   - 매우 빠른 속도 (실시간)
-   - GPU 가속 지원
-   - 모델: yolov8n-face.pt (약 3-6MB)
-   - 가이드: models/README.md
-
-3. **HOG** (기본 내장)
-   - face_recognition 내장
-   - 간단한 설치
-   - 의존성 없음
-
-### 엔진 비교표
-
-| 특징 | RetinaFace 🏆 | YOLO-Face | HOG |
-|------|--------------|-----------|-----|
-| 정확도 | ★★★★★ | ★★★★☆ | ★★★☆☆ |
-| 속도 (PC) | ★★★★☆ | ★★★★★ | ★★☆☆☆ |
-| 작은 얼굴 | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
-| 다양한 각도 | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
-| 설치 난이도 | 중간 | 중간 | 쉬움 |
-| 모델 크기 | 10-100MB | 3-6MB | 없음 |
-
-💡 **추천 사용 시나리오:**
-- **보안/출입통제** → RetinaFace (정확도 최우선)
-- **실시간 이벤트** → YOLO-Face (속도 최우선)
-- **간단한 데모** → HOG (설치 간편)
-
-## 🐛 문제 해결
-
-### 웹캠이 열리지 않음
-
-```python
-# 카메라 인덱스 변경 (0, 1, 2 시도)
-self.video_capture = cv2.VideoCapture(0)
-```
-
-### 한글이 표시되지 않음
-
-폰트 경로 확인 및 수정:
-
-```python
-# macOS
-self.font = ImageFont.truetype("/System/Library/Fonts/AppleSDGothicNeo.ttc", 30)
-
-# Linux
-self.font = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumGothic.ttf", 30)
-
-# Windows
-self.font = ImageFont.truetype("C:/Windows/Fonts/malgun.ttf", 30)
-```
-
-### 메모리 부족 (Jetson)
-
-[JETSON_TUTORIAL.md](JETSON_TUTORIAL.md)의 "메모리 부족 오류" 섹션 참조
-
-## 📝 라이센스
-
-이 프로젝트는 MIT 라이센스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
-
-## 🤝 기여
-
-기여는 언제나 환영합니다!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📧 연락처
-
-Lim Changgeon - [@limchanggeon](https://github.com/limchanggeon)
-
-Project Link: [https://github.com/limchanggeon/facedetection-system](https://github.com/limchanggeon/facedetection-system)
-
-## 🙏 감사의 말
-
-- [face_recognition](https://github.com/ageitgey/face_recognition) - 강력한 얼굴 인식 라이브러리
-- [dlib](http://dlib.net/) - 머신러닝 도구킷
-- [OpenCV](https://opencv.org/) - 컴퓨터 비전 라이브러리
+### 하드웨어 권장사양
+- **CPU**: Intel i5 이상 또는 ARM (Jetson)
+- **RAM**: 4GB 이상 (8GB 권장)
+- **저장공간**: 1GB 이상
 
 ---
 
-⭐ 이 프로젝트가 도움이 되었다면 Star를 눌러주세요!
+## 📦 주요 패키지
+
+```
+face-recognition    # 얼굴 인코딩 및 비교
+insightface         # RetinaFace 구현
+ultralytics         # YOLO-Face 구현
+opencv-python       # 비디오 처리
+Pillow              # 이미지 처리 및 한글 렌더링
+```
+
+전체 목록은 `requirements.txt` 참조
+
+---
+
+## 🎯 프로젝트 구조
+
+```
+facedetection-system/
+├── face_recognition_app.py    # 메인 애플리케이션 (멀티스크린)
+├── face_recognition_gui.py    # 단일 화면 버전
+├── gui_screens.py              # GUI 화면 클래스
+├── database.py                 # SQLite 데이터베이스 관리
+├── retinaface_detector.py      # RetinaFace 감지기
+├── yolo_face_detector.py       # YOLO-Face 감지기
+├── jetson_optimize.py          # Jetson 최적화 도구
+├── requirements.txt            # Python 패키지 목록
+├── face_recognition.db         # SQLite 데이터베이스
+├── models/                     # 얼굴 감지 모델
+│   ├── yolov8n-face.pt        # YOLO-Face 모델
+│   └── README.md              # 모델 다운로드 가이드
+└── docs/                       # 문서
+    ├── COMPLETE_GUIDE.md      # 📗 통합 튜토리얼 (추천!)
+    ├── CHANGELOG.md           # 변경 이력
+    └── TECHNICAL_REPORT.md    # 기술 보고서
+```
+
+---
+
+## 🔧 주요 기능
+
+### 1️⃣ 실시간 얼굴 인식
+- 최대 10명 동시 인식
+- 🟢 녹색 박스: 등록된 사람 (이름 + 신뢰도)
+- 🔴 빨간 박스: 미등록 (Unknown)
+
+### 2️⃣ 얼굴 등록
+- GUI를 통한 간편한 등록
+- 학생 정보 입력 (이름, 학번, 학과, 학년)
+- 다양한 각도 등록 가능
+
+### 3️⃣ 데이터베이스 관리
+- SQLite 기반 영구 저장
+- 등록된 얼굴 조회 및 삭제
+- 인식 로그 확인 (최근 100개)
+
+### 4️⃣ 환경 설정
+- 카메라 선택 및 테스트
+- 얼굴 감지 엔진 선택 (RetinaFace/YOLO/HOG)
+- 성능 프리셋 (고속/균형/CCTV 모드)
+- 정확도 수동 조절 (Tolerance, Upsample)
+
+---
+
+## 🚀 성능 벤치마크
+
+### PC (Intel i7, 16GB RAM, RTX 2060)
+
+| 모드 | FPS | 거리 | 인원 |
+|------|-----|------|------|
+| ⚡ 고속 | 25-30 | 1-2m | 3-5명 |
+| ⚖️ 균형 | 18-22 | 2-4m | 5-7명 |
+| 🎥 CCTV | 10-15 | 1-7m | 7-10명 |
+
+### Jetson Nano (4GB)
+
+| 모드 | FPS | 거리 | 인원 |
+|------|-----|------|------|
+| ⚡ 고속 | 8-12 | 1-2m | 3-5명 |
+| ⚖️ 균형 | 5-8 | 2-4m | 5-7명 |
+| 🎥 CCTV | 3-5 | 1-7m | 7-10명 |
+
+---
+
+## ❓ FAQ
+
+**Q1: GPU가 없어도 작동하나요?**
+```
+A: 네! CPU만으로도 작동합니다. HOG 모드를 사용하면 됩니다.
+```
+
+**Q2: 몇 명까지 동시 인식 가능한가요?**
+```
+A: PC는 최대 10명, Jetson Nano는 5-7명 정도입니다.
+```
+
+**Q3: 마스크를 쓴 얼굴도 인식하나요?**
+```
+A: 부분적으로 가능하지만 정확도가 떨어집니다.
+   마스크 착용 상태로 등록하면 인식률이 향상됩니다.
+```
+
+**Q4: 상용 프로젝트에 사용할 수 있나요?**
+```
+A: MIT 라이센스이므로 상업적 사용 가능합니다.
+```
+
+더 많은 질문은 [📗 완벽 가이드](docs/COMPLETE_GUIDE.md)를 참조하세요!
+
+---
+
+## 🐛 문제 해결
+
+일반적인 문제와 해결책은 [📗 완벽 가이드 - 문제 해결](docs/COMPLETE_GUIDE.md#7-문제-해결) 섹션을 참조하세요.
+
+### 빠른 링크
+- [웹캠이 열리지 않음](docs/COMPLETE_GUIDE.md#711-웹캠이-열리지-않음)
+- [한글이 표시되지 않음](docs/COMPLETE_GUIDE.md#712-한글이-표시되지-않음)
+- [dlib 설치 실패](docs/COMPLETE_GUIDE.md#714-dlib-설치-실패)
+- [Jetson GUI 문제](docs/COMPLETE_GUIDE.md#734-문제-해결)
+
+---
+
+## 📜 라이센스
+
+MIT License - 자유롭게 사용, 수정, 배포 가능
+
+---
+
+## 🤝 기여
+
+GitHub에서 Issue와 Pull Request를 환영합니다!
+
+---
+
+## 📧 문의
+
+- **개발자**: limchanggeon
+- **GitHub**: https://github.com/limchanggeon/facedetection-system
+- **Issues**: https://github.com/limchanggeon/facedetection-system/issues
+
+---
+
+## 🎉 시작하기
+
+1. **[저장소 클론](#1-설치)**하고 패키지를 설치하세요
+2. **`python face_recognition_app.py`** 실행
+3. **[📗 완벽 가이드](docs/COMPLETE_GUIDE.md)**에서 자세한 사용법을 확인하세요
+
+**행복한 코딩 되세요! 🚀**
+
+---
+
+**버전**: v2.3.3 | **마지막 업데이트**: 2024-10-27

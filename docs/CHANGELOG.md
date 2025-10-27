@@ -1,5 +1,97 @@
 # 변경 이력 (Changelog)
 
+## [v2.3.3] - 2024-10-27
+
+### 📚 문서 통합 및 정리
+
+#### 문서 구조 개편
+- ✨ **완벽 가이드 작성** (`docs/COMPLETE_GUIDE.md`)
+  - 모든 튜토리얼을 하나의 문서로 통합
+  - 9개 섹션: 시작하기 / 설치 / 사용법 / 감지 엔진 / 최적화 / 플랫폼별 / 문제 해결 / 고급 기능 / 개발자 정보
+  - 상세한 목차 및 상호 참조 링크
+  - FAQ 및 벤치마크 데이터 포함
+
+#### 문서 정리
+- 📂 **docs 폴더 구조 개선**
+  - `docs/COMPLETE_GUIDE.md` - 통합 튜토리얼 (권장)
+  - `docs/CHANGELOG.md` - 버전 히스토리
+  - `docs/TECHNICAL_REPORT.md` - 기술 보고서
+  - `docs/archived/` - 기존 튜토리얼 보관
+    - RETINAFACE_GUIDE.md
+    - YOLO_INTEGRATION_GUIDE.md
+    - JETSON_TUTORIAL.md
+    - JETSON_TROUBLESHOOTING.md
+    - WINDOWS_TUTORIAL.md
+    - ACCURACY_GUIDE.md
+    - MULTI_SCREEN_GUIDE.md
+
+#### README 개선
+- 🎯 **간결한 README.md**
+  - 핵심 기능 및 빠른 시작 가이드
+  - 완벽 가이드로의 명확한 링크
+  - 감지 엔진 비교표 추가
+  - FAQ 및 문제 해결 빠른 링크
+
+---
+
+## [v2.3.2] - 2024-10-27
+
+### 🐛 RetinaFace 바운딩 박스 수정
+
+#### 버그 수정
+- 🔧 **RetinaFace 좌표 변환 오류 수정**
+  - OpenCV DNN 방식에서 insightface 직접 사용으로 전환
+  - bbox 형식 정확히 변환: [x1,y1,x2,y2] → (top,right,bottom,left)
+  - face_recognition 라이브러리 호환성 개선
+
+#### 코드 개선
+- ♻️ `retinaface_detector.py` 리팩토링
+  - FaceAnalysis().get() 직접 사용
+  - 불필요한 ONNX 로딩 제거
+  - 더 안정적인 좌표 파싱
+
+---
+
+## [v2.3.1] - 2024-10-27
+
+### ⚙️ 감지 엔진 선택 UI 추가
+
+#### 새로운 기능
+- 🎨 **설정 화면에 감지 엔진 선택 추가**
+  - 라디오 버튼으로 엔진 선택 (자동/RetinaFace/YOLO/HOG)
+  - 사용 가능한 엔진 표시 (✅/❌)
+  - 현재 사용 중인 엔진 표시 (🏆/⚡/🔧)
+
+- 📊 **인식 화면에 엔진 정보 표시**
+  - "감지 엔진: 🏆 RetinaFace" 형식
+  - 실시간 상태 업데이트
+
+---
+
+## [v2.3.0] - 2024-10-27
+
+### 🏆 RetinaFace 통합
+
+#### 새로운 감지 엔진
+- ✨ **RetinaFace 지원 추가** (최고 정확도)
+  - insightface 라이브러리 사용
+  - Buffalo_l 모델 (16.1MB)
+  - 작은 얼굴 및 다양한 각도 탁월
+  - YOLO-Face보다 높은 정확도
+
+#### 자동 설치
+- 🤖 `download_retinaface.py` 스크립트
+  - insightface 자동 다운로드
+  - 모델 자동 설치 (~/.insightface/models/)
+  - 의존성 자동 설치
+
+#### 3가지 감지 엔진 지원
+- 🏆 **RetinaFace** - 최고 정확도
+- ⚡ **YOLO-Face** - 최고 속도
+- 🔧 **HOG** - 기본 옵션
+
+---
+
 ## [v2.2.0] - 2024-10-27
 
 ### 🚀 YOLO-Face 통합 (선택적)
