@@ -263,13 +263,54 @@ Windows 환경에서 실행하려면 **[WINDOWS_TUTORIAL.md](WINDOWS_TUTORIAL.md
 
 ## 🛠️ 기술 스택
 
+### 핵심 라이브러리
 - **Python**: 3.6+
-- **face_recognition**: 얼굴 인식 라이브러리
+- **face_recognition**: 얼굴 인코딩 및 비교
 - **OpenCV**: 비디오 처리
 - **Tkinter**: GUI 프레임워크
 - **PIL/Pillow**: 이미지 처리 및 한글 렌더링
 - **SQLite3**: 데이터베이스
 - **NumPy**: 수치 연산
+
+### 얼굴 감지 엔진 (선택 가능) ⭐ NEW
+
+프로그램은 다음 순서로 자동 감지:
+
+1. **RetinaFace** (최고 정확도) 🏆
+   - 매우 높은 정확도
+   - 작은 얼굴, 다양한 각도 탁월
+   - 얼굴 랜드마크 5개 제공
+   - 모델: 약 10-100MB
+   - 설치: `pip install insightface onnxruntime`
+   - 다운로드: `python download_retinaface.py`
+   - 가이드: [RETINAFACE_GUIDE.md](RETINAFACE_GUIDE.md)
+
+2. **YOLO-Face** (최고 속도)
+   - 매우 빠른 속도 (실시간)
+   - GPU 가속 지원
+   - 모델: yolov8n-face.pt (약 3-6MB)
+   - 가이드: models/README.md
+
+3. **HOG** (기본 내장)
+   - face_recognition 내장
+   - 간단한 설치
+   - 의존성 없음
+
+### 엔진 비교표
+
+| 특징 | RetinaFace 🏆 | YOLO-Face | HOG |
+|------|--------------|-----------|-----|
+| 정확도 | ★★★★★ | ★★★★☆ | ★★★☆☆ |
+| 속도 (PC) | ★★★★☆ | ★★★★★ | ★★☆☆☆ |
+| 작은 얼굴 | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
+| 다양한 각도 | ★★★★★ | ★★★★☆ | ★★☆☆☆ |
+| 설치 난이도 | 중간 | 중간 | 쉬움 |
+| 모델 크기 | 10-100MB | 3-6MB | 없음 |
+
+💡 **추천 사용 시나리오:**
+- **보안/출입통제** → RetinaFace (정확도 최우선)
+- **실시간 이벤트** → YOLO-Face (속도 최우선)
+- **간단한 데모** → HOG (설치 간편)
 
 ## 🐛 문제 해결
 

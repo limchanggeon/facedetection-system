@@ -855,15 +855,33 @@ class RecognitionScreen(tk.Frame):
         self.is_running = False
         self.recognition_thread = None
         
-        # YOLO-Face 초기화
+        # 감지기 초기화 우선순위: RetinaFace > YOLO-Face > HOG
+        self.detector = None
+        self.detector_type = "HOG"
+        
+        # RetinaFace 시도
         try:
-            self.yolo_detector = YOLOFaceDetector(conf_threshold=0.3)
-            self.use_yolo = True
-            print("[INFO] YOLO-Face 감지기 초기화 완료")
+            from retinaface_detector import RetinaFaceDetector
+            self.detector = RetinaFaceDetector(conf_threshold=0.5)
+            self.detector_type = "RetinaFace"
+            print("[INFO] ✅ RetinaFace 감지기 사용")
         except Exception as e:
-            print(f"[WARN] YOLO-Face 초기화 실패, HOG 사용: {e}")
-            self.yolo_detector = None
-            self.use_yolo = False
+            print(f"[WARN] RetinaFace 초기화 실패: {e}")
+            
+            # YOLO-Face 시도
+            try:
+                from yolo_face_detector import YOLOFaceDetector
+                self.detector = YOLOFaceDetector(conf_threshold=0.3)
+                self.detector_type = "YOLO-Face"
+                print("[INFO] ✅ YOLO-Face 감지기 사용")
+            except Exception as e:
+                print(f"[WARN] YOLO-Face 초기화 실패: {e}")
+                self.detector_type = "HOG"
+                print("[INFO] ℹ️  HOG 감지기 사용 (기본)")
+        
+        # 하위 호환성을 위한 별칭
+        self.yolo_detector = self.detector
+        self.use_yolo = (self.detector_type != "HOG")
         
         # 한글 폰트 설정
         try:
@@ -1080,9 +1098,9 @@ class RecognitionScreen(tk.Frame):
                 
                 # 얼굴 위치 및 인코딩
                 try:
-                    # YOLO-Face 또는 HOG 사용
-                    if self.use_yolo and self.yolo_detector:
-                        face_locations = self.yolo_detector.detect_faces(
+                    # RetinaFace, YOLO-Face 또는 HOG 사용
+                    if self.detector and self.detector_type != "HOG":
+                        face_locations = self.detector.detect_faces(
                             rgb_small_frame,
                             upsample_times=self.manager.settings['upsample_times']
                         )
@@ -1096,8 +1114,7 @@ class RecognitionScreen(tk.Frame):
                     face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
                     
                     if len(face_locations) > 0:
-                        detector_type = "YOLO-Face" if self.use_yolo else "HOG"
-                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨 ({detector_type})")
+                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨 ({self.detector_type})")
                 except Exception as e:
                     print(f"[ERROR] 얼굴 인식 오류: {e}")
                     continue
