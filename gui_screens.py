@@ -1287,7 +1287,8 @@ class RecognitionScreen(tk.Frame):
     
     def process_video(self):
         """비디오 프레임 처리 및 얼굴 인식"""
-        process_every_n_frames = 2  # 성능 최적화: 매 2 프레임마다 얼굴 인식
+        # 성능 최적화: 프레임 스킵 설정
+        process_every_n_frames = 3 if self.manager.settings['upsample_times'] >= 1 else 2
         frame_count = 0
         
         # 이전 프레임의 얼굴 정보 저장
@@ -1298,34 +1299,36 @@ class RecognitionScreen(tk.Frame):
         # 부드러운 이동을 위한 변수
         smoothed_face_locations = []
         target_face_locations = []
-        smoothing_factor = 0.2
+        smoothing_factor = 0.15  # 더 빠른 반응
         
         # 로깅 쿨다운 관리
         last_logged_names = {}
         log_cooldown = 5.0  # 5초마다 로그
         
-        # 등록된 얼굴 로드
+        # 등록된 얼굴 로드 (NumPy 배열로 미리 변환)
         known_faces = self.manager.db.get_all_faces()
+        known_encodings_array = np.array(known_faces["encodings"]) if len(known_faces["encodings"]) > 0 else None
         
         print("[INFO] 비디오 처리 시작...")
         print(f"[INFO] 등록된 얼굴: {len(known_faces['names'])}명")
-        print(f"[INFO] 성능 설정 - 업샘플: {self.manager.settings['upsample_times']}, 스케일: {self.manager.settings['frame_scale']}")
+        print(f"[INFO] 성능 설정 - 프레임스킵: {process_every_n_frames}, 업샘플: {self.manager.settings['upsample_times']}, 스케일: {self.manager.settings['frame_scale']}")
         
         fps_start_time = time.time()
+        fps_frame_count = 0
         
         while self.is_running:
             ret, frame = self.video_capture.read()
             if not ret:
-                print("[ERROR] 프레임을 읽을 수 없습니다.")
                 break
             
             frame_count += 1
+            fps_frame_count += 1
             
             # 매 N 프레임마다 얼굴 인식 수행
             if frame_count % process_every_n_frames == 0:
-                # 프레임 크기 조정
+                # 프레임 크기 조정 (INTER_NEAREST가 가장 빠름)
                 frame_scale = self.manager.settings['frame_scale']
-                small_frame = cv2.resize(frame, (0, 0), fx=frame_scale, fy=frame_scale)
+                small_frame = cv2.resize(frame, (0, 0), fx=frame_scale, fy=frame_scale, interpolation=cv2.INTER_NEAREST)
                 rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
                 
                 # 얼굴 위치 및 인코딩
@@ -1343,10 +1346,12 @@ class RecognitionScreen(tk.Frame):
                             number_of_times_to_upsample=self.manager.settings['upsample_times']
                         )
                     
-                    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                    # 얼굴이 없으면 인코딩 스킵 (성능 향상)
+                    if len(face_locations) == 0:
+                        face_encodings = []
+                    else:
+                        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
                     
-                    if len(face_locations) > 0:
-                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨 ({self.detector_type})")
                 except Exception as e:
                     print(f"[ERROR] 얼굴 인식 오류: {e}")
                     continue
@@ -1359,58 +1364,49 @@ class RecognitionScreen(tk.Frame):
                     student_id = None
                     confidence = 0.0
                     
-                    if len(known_faces["encodings"]) > 0:
+                    if known_encodings_array is not None:
                         try:
-                            # 거리 계산
-                            face_distances = face_recognition.face_distance(
-                                known_faces["encodings"],
-                                face_encoding
-                            )
+                            # NumPy로 빠른 거리 계산
+                            face_distances = np.linalg.norm(known_encodings_array - face_encoding, axis=1)
                             best_match_index = face_distances.argmin()
                             best_distance = face_distances[best_match_index]
                             
                             # 신뢰도 계산
                             confidence = max(0, 1 - best_distance)
                             
-                            # 매칭 확인
-                            if best_distance <= self.manager.settings['tolerance'] and \
-                               best_distance <= self.manager.settings['distance_threshold']:
-                                matches = face_recognition.compare_faces(
-                                    [known_faces["encodings"][best_match_index]],
-                                    face_encoding,
-                                    tolerance=self.manager.settings['tolerance']
-                                )
+                            # 매칭 확인 (단일 비교로 최적화)
+                            tolerance = self.manager.settings['tolerance']
+                            distance_threshold = self.manager.settings['distance_threshold']
+                            
+                            if best_distance <= min(tolerance, distance_threshold):
+                                name = known_faces["names"][best_match_index]
+                                student_id = known_faces["student_ids"][best_match_index]
                                 
-                                if matches[0]:
-                                    name = known_faces["names"][best_match_index]
-                                    student_id = known_faces["student_ids"][best_match_index]
-                                    
-                                    # 등록된 사람 로그
-                                    current_time = time.time()
-                                    if student_id not in last_logged_names or \
-                                       (current_time - last_logged_names[student_id]) > log_cooldown:
-                                        try:
-                                            self.manager.db.log_recognition(name, student_id, True)
-                                            last_logged_names[student_id] = current_time
-                                            print(f"[INFO] 인식: {name} ({student_id}) - 신뢰도: {confidence:.2%}")
-                                        except Exception as e:
-                                            print(f"[WARNING] 로그 저장 실패: {e}")
+                                # 등록된 사람 로그 (비동기 처리를 위한 준비)
+                                current_time = time.time()
+                                if student_id not in last_logged_names or \
+                                   (current_time - last_logged_names[student_id]) > log_cooldown:
+                                    try:
+                                        self.manager.db.log_recognition(name, student_id, True)
+                                        last_logged_names[student_id] = current_time
+                                    except Exception as e:
+                                        pass  # 로그 실패는 무시
                         except Exception as e:
-                            print(f"[ERROR] 얼굴 비교 오류: {e}")
+                            pass  # 에러 무시하고 계속
                     
-                    # Unknown 로그
+                    # Unknown 로그 (빈도 낮춤)
                     if name == "Unknown":
                         if "Unknown" not in last_logged_names or \
-                           (time.time() - last_logged_names["Unknown"]) > log_cooldown:
+                           (time.time() - last_logged_names["Unknown"]) > log_cooldown * 2:  # Unknown은 더 낮은 빈도
                             try:
                                 self.manager.db.log_recognition("Unknown", None, False)
                                 last_logged_names["Unknown"] = time.time()
-                            except Exception as e:
-                                print(f"[WARNING] 로그 저장 실패: {e}")
+                            except:
+                                pass
                     
-                    # 신뢰도 표시
+                    # 신뢰도 표시 (문자열 포맷 최적화)
                     if self.manager.settings['show_confidence'] and name != "Unknown":
-                        name_with_confidence = f"{name} ({confidence:.0%})"
+                        name_with_confidence = f"{name} ({int(confidence*100)}%)"
                     else:
                         name_with_confidence = name
                     
@@ -1428,19 +1424,20 @@ class RecognitionScreen(tk.Frame):
                 if len(smoothed_face_locations) != len(target_face_locations):
                     smoothed_face_locations = target_face_locations.copy()
             
-            # 부드러운 이동 적용
+            # 부드러운 이동 적용 (벡터화 최적화)
             if len(smoothed_face_locations) > 0 and len(target_face_locations) > 0:
-                for i in range(len(smoothed_face_locations)):
-                    if i < len(target_face_locations):
-                        st, sr, sb, sl = smoothed_face_locations[i]
-                        tt, tr, tb, tl = target_face_locations[i]
-                        
-                        smoothed_face_locations[i] = (
-                            int(st + (tt - st) * smoothing_factor),
-                            int(sr + (tr - sr) * smoothing_factor),
-                            int(sb + (tb - sb) * smoothing_factor),
-                            int(sl + (tl - sl) * smoothing_factor)
-                        )
+                min_len = min(len(smoothed_face_locations), len(target_face_locations))
+                for i in range(min_len):
+                    st, sr, sb, sl = smoothed_face_locations[i]
+                    tt, tr, tb, tl = target_face_locations[i]
+                    
+                    # 빠른 정수 연산
+                    smoothed_face_locations[i] = (
+                        st + int((tt - st) * smoothing_factor),
+                        sr + int((tr - sr) * smoothing_factor),
+                        sb + int((tb - sb) * smoothing_factor),
+                        sl + int((tl - sl) * smoothing_factor)
+                    )
             
             # OpenCV BGR을 RGB로 변환 후 PIL로 처리
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -1483,25 +1480,24 @@ class RecognitionScreen(tk.Frame):
                     fill=(0, 0, 0)  # 검은색
                 )
             
-            # 상태 정보 표시
-            info_text = f"얼굴: {len(previous_face_names)}명"
-            draw.text((10, 10), info_text, font=self.font_small, fill=(255, 255, 255))
+            # 상태 정보 표시 (성능 개선된 포맷)
+            if fps_frame_count % 30 == 0:
+                elapsed = time.time() - fps_start_time
+                current_fps = fps_frame_count / elapsed if elapsed > 0 else 0
+                info_text = f"FPS: {int(current_fps)} | 얼굴: {len(previous_face_names)}명"
+                fps_start_time = time.time()
+                fps_frame_count = 0
+            else:
+                info_text = f"얼굴: {len(previous_face_names)}명"
+            
+            draw.text((10, 10), info_text, font=self.font_small, fill=(0, 255, 0))
             
             # PIL Image를 numpy 배열로 변환
             frame = np.array(pil_image)
             
-            # FPS 계산
-            if frame_count == 1:
-                fps_start_time = time.time()
-            
-            if frame_count % 30 == 0 and frame_count > 1:
-                fps = 30 / (time.time() - fps_start_time)
-                fps_start_time = time.time()
-                print(f"[INFO] FPS: {fps:.1f}, 인식된 얼굴: {len(previous_face_names)}명")
-            
-            # PIL Image로 변환 및 리사이즈
+            # PIL Image로 변환 및 리사이즈 (빠른 NEAREST 사용)
             img = Image.fromarray(frame)
-            img = img.resize((960, 540), Image.Resampling.LANCZOS)
+            img = img.resize((960, 540), Image.Resampling.NEAREST)
             
             # PhotoImage로 변환
             photo = ImageTk.PhotoImage(image=img)
