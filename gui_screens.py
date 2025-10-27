@@ -69,7 +69,7 @@ class LobbyScreen(tk.Frame):
             text="실시간 얼굴 인식 시스템",
             font=("Arial", 36, "bold"),
             bg="#2c3e50",
-            fg="white"
+            fg="black"
         ).pack()
         
         tk.Label(
@@ -99,7 +99,7 @@ class LobbyScreen(tk.Frame):
                 text=text,
                 command=lambda s=screen: self.manager.show_screen(s),
                 bg=color,
-                fg="white",
+                fg="black",
                 font=("Arial", 16, "bold"),
                 width=20,
                 height=3,
@@ -107,7 +107,7 @@ class LobbyScreen(tk.Frame):
                 relief=tk.RAISED,
                 bd=3,
                 activebackground=color,
-                activeforeground="white"
+                activeforeground="black"
             )
             btn.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
             
@@ -127,7 +127,7 @@ class LobbyScreen(tk.Frame):
             text=f"등록된 얼굴: {registered_count}명",
             font=("Arial", 14, "bold"),
             bg="#34495e",
-            fg="white",
+            fg="black",
             pady=15
         ).pack()
         
@@ -162,7 +162,7 @@ class SettingsScreen(tk.Frame):
             text="환경 설정",
             font=("Arial", 24, "bold"),
             bg="#34495e",
-            fg="white"
+            fg="black"
         ).pack(side=tk.LEFT, padx=20, pady=20)
         
         tk.Button(
@@ -170,7 +170,7 @@ class SettingsScreen(tk.Frame):
             text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=12,
@@ -235,7 +235,7 @@ class SettingsScreen(tk.Frame):
             text="카메라 테스트",
             command=self.test_camera,
             bg="#3498db",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=15,
@@ -277,14 +277,14 @@ class SettingsScreen(tk.Frame):
                 text=text,
                 command=lambda m=mode: self.apply_preset(m),
                 bg=color,
-                fg="white",
+                fg="black",
                 font=("Arial", 12, "bold"),
                 cursor="hand2",
                 height=2,
                 relief=tk.RAISED,
                 bd=2,
                 activebackground=color,
-                activeforeground="white"
+                activeforeground="black"
             ).pack(fill=tk.X, pady=5)
         
         # 고급 설정
@@ -357,14 +357,14 @@ class SettingsScreen(tk.Frame):
             text="설정 저장하기",
             command=self.save_settings,
             bg="#27ae60",
-            fg="white",
+            fg="black",
             font=("Arial", 16, "bold"),
             cursor="hand2",
             height=3,
             relief=tk.RAISED,
             bd=3,
             activebackground="#27ae60",
-            activeforeground="white"
+            activeforeground="black"
         ).pack(fill=tk.X, padx=20, pady=20)
         
         canvas.pack(side="left", fill="both", expand=True)
@@ -455,7 +455,7 @@ class RegisterScreen(tk.Frame):
             text="얼굴 등록 관리",
             font=("Arial", 24, "bold"),
             bg="#34495e",
-            fg="white"
+            fg="black"
         ).pack(side=tk.LEFT, padx=20, pady=20)
         
         tk.Button(
@@ -463,7 +463,7 @@ class RegisterScreen(tk.Frame):
             text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=12,
@@ -482,14 +482,14 @@ class RegisterScreen(tk.Frame):
             text="새 얼굴 등록하기",
             command=self.register_new_face,
             bg="#27ae60",
-            fg="white",
+            fg="black",
             font=("Arial", 18, "bold"),
             cursor="hand2",
             height=3,
             relief=tk.RAISED,
             bd=3,
             activebackground="#27ae60",
-            activeforeground="white"
+            activeforeground="black"
         ).pack(fill=tk.X, pady=10)
         
         # 안내 메시지
@@ -501,7 +501,7 @@ class RegisterScreen(tk.Frame):
             text="[ 등록 방법 ]\n\n1. 이름을 입력하세요\n2. 카메라를 보고 스페이스바를 누르세요\n3. ESC를 누르면 취소됩니다",
             font=("Arial", 13),
             bg="#3498db",
-            fg="white",
+            fg="black",
             justify=tk.LEFT,
             padx=20,
             pady=15
@@ -530,15 +530,27 @@ class RegisterScreen(tk.Frame):
     
     def register_new_face(self):
         """새 얼굴 등록"""
+        # 학생 정보 입력 받기
         name = simpledialog.askstring("이름 입력", "등록할 사람의 이름을 입력하세요:")
-        
         if not name:
             return
         
-        # 이미 등록된 이름인지 확인
+        student_id = simpledialog.askstring("학번 입력", "학번을 입력하세요:")
+        if not student_id:
+            return
+        
+        department = simpledialog.askstring("학과 입력", "학과를 입력하세요:")
+        if not department:
+            return
+        
+        grade = simpledialog.askstring("학년 입력", "학년을 입력하세요 (예: 1, 2, 3, 4):")
+        if not grade:
+            return
+        
+        # 이미 등록된 학번인지 확인
         known_faces = self.manager.db.get_all_faces()
-        if name in known_faces["names"]:
-            messagebox.showerror("오류", f"'{name}'은(는) 이미 등록된 이름입니다.")
+        if student_id in known_faces["student_ids"]:
+            messagebox.showerror("오류", f"학번 '{student_id}'은(는) 이미 등록되어 있습니다.")
             return
         
         # 웹캠 열기
@@ -608,8 +620,8 @@ class RegisterScreen(tk.Frame):
         
         # 데이터베이스에 저장
         if encoding is not None:
-            if self.manager.db.add_face(name, encoding):
-                messagebox.showinfo("성공", f"'{name}'이(가) 성공적으로 등록되었습니다!")
+            if self.manager.db.add_face(name, student_id, department, grade, encoding):
+                messagebox.showinfo("성공", f"'{name}' (학번: {student_id})이(가) 성공적으로 등록되었습니다!")
                 self.update_stats()
             else:
                 messagebox.showerror("오류", "얼굴 등록에 실패했습니다.")
@@ -633,7 +645,7 @@ class DatabaseScreen(tk.Frame):
             text="데이터베이스 관리",
             font=("Arial", 24, "bold"),
             bg="#34495e",
-            fg="white"
+            fg="black"
         ).pack(side=tk.LEFT, padx=20, pady=20)
         
         tk.Button(
@@ -641,7 +653,7 @@ class DatabaseScreen(tk.Frame):
             text="< 뒤로 가기",
             command=lambda: self.manager.show_screen('lobby'),
             bg="#7f8c8d",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=12,
@@ -708,7 +720,7 @@ class DatabaseScreen(tk.Frame):
             text="새로고침",
             command=self.refresh_data,
             bg="#3498db",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=15,
@@ -722,7 +734,7 @@ class DatabaseScreen(tk.Frame):
             text="선택 삭제",
             command=self.delete_selected,
             bg="#e74c3c",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=15,
@@ -736,7 +748,7 @@ class DatabaseScreen(tk.Frame):
             text="인식 로그",
             command=self.show_logs,
             bg="#f39c12",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=15,
@@ -760,8 +772,13 @@ class DatabaseScreen(tk.Frame):
         # 목록 업데이트
         self.face_listbox.delete(0, tk.END)
         known_faces = self.manager.db.get_all_faces()
-        for name in known_faces["names"]:
-            self.face_listbox.insert(tk.END, name)
+        for i in range(len(known_faces["names"])):
+            name = known_faces["names"][i]
+            student_id = known_faces["student_ids"][i]
+            department = known_faces["departments"][i]
+            grade = known_faces["grades"][i]
+            display_text = f"{name} | {student_id} | {department} | {grade}학년"
+            self.face_listbox.insert(tk.END, display_text)
     
     def delete_selected(self):
         """선택된 얼굴 삭제"""
@@ -770,10 +787,18 @@ class DatabaseScreen(tk.Frame):
             messagebox.showwarning("경고", "삭제할 얼굴을 선택하세요.")
             return
         
-        name = self.face_listbox.get(selection[0])
+        selected_text = self.face_listbox.get(selection[0])
+        # "이름 | 학번 | 학과 | 학년" 형식에서 학번 추출
+        parts = selected_text.split(" | ")
+        if len(parts) < 2:
+            messagebox.showerror("오류", "데이터 형식이 올바르지 않습니다.")
+            return
         
-        if messagebox.askyesno("확인", f"'{name}'을(를) 삭제하시겠습니까?"):
-            if self.manager.db.delete_face(name):
+        name = parts[0]
+        student_id = parts[1]
+        
+        if messagebox.askyesno("확인", f"'{name}' (학번: {student_id})을(를) 삭제하시겠습니까?"):
+            if self.manager.db.delete_face(student_id):
                 messagebox.showinfo("성공", f"'{name}'이(가) 삭제되었습니다.")
                 self.refresh_data()
             else:
@@ -809,9 +834,13 @@ class DatabaseScreen(tk.Frame):
         
         # 로그 삽입
         text_widget.insert(tk.END, "=== 최근 100개 인식 로그 ===\n\n")
+        text_widget.insert(tk.END, "시간 | 이름 | 학번 | 상태\n")
+        text_widget.insert(tk.END, "-" * 60 + "\n")
         for log in logs:
-            status = "[등록됨]" if log[2] else "[미등록]"
-            text_widget.insert(tk.END, f"{log[3]} | {log[1]} | {status}\n")
+            log_id, name, student_id, is_registered, timestamp = log
+            status = "[등록됨]" if is_registered else "[미등록]"
+            student_id_str = student_id if student_id else "N/A"
+            text_widget.insert(tk.END, f"{timestamp} | {name} | {student_id_str} | {status}\n")
         
         text_widget.config(state=tk.DISABLED)
 
@@ -850,7 +879,7 @@ class RecognitionScreen(tk.Frame):
             text="얼굴 인식 실행",
             font=("Arial", 24, "bold"),
             bg="#34495e",
-            fg="white"
+            fg="black"
         ).pack(side=tk.LEFT, padx=20, pady=20)
         
         tk.Button(
@@ -858,7 +887,7 @@ class RecognitionScreen(tk.Frame):
             text="< 뒤로 가기",
             command=self.go_back,
             bg="#7f8c8d",
-            fg="white",
+            fg="black",
             font=("Arial", 12, "bold"),
             cursor="hand2",
             width=12,
@@ -875,7 +904,7 @@ class RecognitionScreen(tk.Frame):
             video_container,
             bg="black",
             text="카메라 대기 중...\n\n'시작' 버튼을 눌러주세요",
-            fg="white",
+            fg="black",
             font=("Arial", 16)
         )
         self.video_label.pack(fill=tk.BOTH, expand=True)
@@ -889,7 +918,7 @@ class RecognitionScreen(tk.Frame):
             text="시 작",
             command=self.start_recognition,
             bg="#27ae60",
-            fg="white",
+            fg="black",
             font=("Arial", 16, "bold"),
             cursor="hand2",
             width=20,
@@ -897,7 +926,7 @@ class RecognitionScreen(tk.Frame):
             relief=tk.RAISED,
             bd=3,
             activebackground="#27ae60",
-            activeforeground="white"
+            activeforeground="black"
         )
         self.start_button.pack(side=tk.LEFT, padx=10)
         
@@ -906,7 +935,7 @@ class RecognitionScreen(tk.Frame):
             text="정 지",
             command=self.stop_recognition,
             bg="#e74c3c",
-            fg="white",
+            fg="black",
             font=("Arial", 16, "bold"),
             cursor="hand2",
             width=20,
@@ -915,7 +944,7 @@ class RecognitionScreen(tk.Frame):
             relief=tk.RAISED,
             bd=3,
             activebackground="#e74c3c",
-            activeforeground="white"
+            activeforeground="black"
         )
         self.stop_button.pack(side=tk.LEFT, padx=10)
         
@@ -985,11 +1014,32 @@ class RecognitionScreen(tk.Frame):
             self.manager.show_screen('lobby')
     
     def process_video(self):
-        """비디오 처리 (실제 인식 로직은 원본 코드와 동일)"""
-        # ... (원본 process_video 로직을 여기에 통합)
-        print("[INFO] 비디오 처리 시작 - 간략화된 버전")
-        
+        """비디오 프레임 처리 및 얼굴 인식"""
+        process_every_n_frames = 2  # 성능 최적화: 매 2 프레임마다 얼굴 인식
         frame_count = 0
+        
+        # 이전 프레임의 얼굴 정보 저장
+        previous_face_locations = []
+        previous_face_names = []
+        previous_student_ids = []
+        
+        # 부드러운 이동을 위한 변수
+        smoothed_face_locations = []
+        target_face_locations = []
+        smoothing_factor = 0.2
+        
+        # 로깅 쿨다운 관리
+        last_logged_names = {}
+        log_cooldown = 5.0  # 5초마다 로그
+        
+        # 등록된 얼굴 로드
+        known_faces = self.manager.db.get_all_faces()
+        
+        print("[INFO] 비디오 처리 시작...")
+        print(f"[INFO] 등록된 얼굴: {len(known_faces['names'])}명")
+        print(f"[INFO] 성능 설정 - 업샘플: {self.manager.settings['upsample_times']}, 스케일: {self.manager.settings['frame_scale']}")
+        
+        fps_start_time = time.time()
         
         while self.is_running:
             ret, frame = self.video_capture.read()
@@ -999,16 +1049,193 @@ class RecognitionScreen(tk.Frame):
             
             frame_count += 1
             
-            # 간단한 표시 (실제로는 얼굴 인식 로직 필요)
-            display_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            display_frame = cv2.resize(display_frame, (960, 540))
-            img = Image.fromarray(display_frame)
-            imgtk = ImageTk.PhotoImage(image=img)
+            # 매 N 프레임마다 얼굴 인식 수행
+            if frame_count % process_every_n_frames == 0:
+                # 프레임 크기 조정
+                frame_scale = self.manager.settings['frame_scale']
+                small_frame = cv2.resize(frame, (0, 0), fx=frame_scale, fy=frame_scale)
+                rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+                
+                # 얼굴 위치 및 인코딩
+                try:
+                    face_locations = face_recognition.face_locations(
+                        rgb_small_frame,
+                        model="hog",
+                        number_of_times_to_upsample=self.manager.settings['upsample_times']
+                    )
+                    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                    
+                    if len(face_locations) > 0:
+                        print(f"[INFO] {len(face_locations)}개의 얼굴 감지됨")
+                except Exception as e:
+                    print(f"[ERROR] 얼굴 인식 오류: {e}")
+                    continue
+                
+                face_names = []
+                face_student_ids = []
+                
+                for face_encoding in face_encodings:
+                    name = "Unknown"
+                    student_id = None
+                    confidence = 0.0
+                    
+                    if len(known_faces["encodings"]) > 0:
+                        try:
+                            # 거리 계산
+                            face_distances = face_recognition.face_distance(
+                                known_faces["encodings"],
+                                face_encoding
+                            )
+                            best_match_index = face_distances.argmin()
+                            best_distance = face_distances[best_match_index]
+                            
+                            # 신뢰도 계산
+                            confidence = max(0, 1 - best_distance)
+                            
+                            # 매칭 확인
+                            if best_distance <= self.manager.settings['tolerance'] and \
+                               best_distance <= self.manager.settings['distance_threshold']:
+                                matches = face_recognition.compare_faces(
+                                    [known_faces["encodings"][best_match_index]],
+                                    face_encoding,
+                                    tolerance=self.manager.settings['tolerance']
+                                )
+                                
+                                if matches[0]:
+                                    name = known_faces["names"][best_match_index]
+                                    student_id = known_faces["student_ids"][best_match_index]
+                                    
+                                    # 등록된 사람 로그
+                                    current_time = time.time()
+                                    if student_id not in last_logged_names or \
+                                       (current_time - last_logged_names[student_id]) > log_cooldown:
+                                        try:
+                                            self.manager.db.log_recognition(name, student_id, True)
+                                            last_logged_names[student_id] = current_time
+                                            print(f"[INFO] 인식: {name} ({student_id}) - 신뢰도: {confidence:.2%}")
+                                        except Exception as e:
+                                            print(f"[WARNING] 로그 저장 실패: {e}")
+                        except Exception as e:
+                            print(f"[ERROR] 얼굴 비교 오류: {e}")
+                    
+                    # Unknown 로그
+                    if name == "Unknown":
+                        if "Unknown" not in last_logged_names or \
+                           (time.time() - last_logged_names["Unknown"]) > log_cooldown:
+                            try:
+                                self.manager.db.log_recognition("Unknown", None, False)
+                                last_logged_names["Unknown"] = time.time()
+                            except Exception as e:
+                                print(f"[WARNING] 로그 저장 실패: {e}")
+                    
+                    # 신뢰도 표시
+                    if self.manager.settings['show_confidence'] and name != "Unknown":
+                        name_with_confidence = f"{name} ({confidence:.0%})"
+                    else:
+                        name_with_confidence = name
+                    
+                    face_names.append(name_with_confidence)
+                    face_student_ids.append(student_id)
+                
+                # 목표 위치 업데이트
+                scale_factor = int(1 / frame_scale)
+                target_face_locations = [(t*scale_factor, r*scale_factor, b*scale_factor, l*scale_factor)
+                                        for (t, r, b, l) in face_locations]
+                previous_face_names = face_names
+                previous_student_ids = face_student_ids
+                
+                # 첫 프레임이거나 얼굴 수가 변경된 경우 즉시 업데이트
+                if len(smoothed_face_locations) != len(target_face_locations):
+                    smoothed_face_locations = target_face_locations.copy()
             
-            if self.is_running:
-                self.video_label.imgtk = imgtk
-                self.video_label.configure(image=imgtk, text="")
+            # 부드러운 이동 적용
+            if len(smoothed_face_locations) > 0 and len(target_face_locations) > 0:
+                for i in range(len(smoothed_face_locations)):
+                    if i < len(target_face_locations):
+                        st, sr, sb, sl = smoothed_face_locations[i]
+                        tt, tr, tb, tl = target_face_locations[i]
+                        
+                        smoothed_face_locations[i] = (
+                            int(st + (tt - st) * smoothing_factor),
+                            int(sr + (tr - sr) * smoothing_factor),
+                            int(sb + (tb - sb) * smoothing_factor),
+                            int(sl + (tl - sl) * smoothing_factor)
+                        )
             
-            time.sleep(0.03)  # ~30 FPS
+            # OpenCV BGR을 RGB로 변환 후 PIL로 처리
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb_frame)
+            draw = ImageDraw.Draw(pil_image)
+            
+            # 바운딩 박스 그리기
+            for i, (top, right, bottom, left) in enumerate(smoothed_face_locations):
+                if i >= len(previous_face_names):
+                    break
+                
+                name = previous_face_names[i]
+                
+                # 바운딩 박스 색상 (등록: 녹색, 미등록: 빨강)
+                color = (0, 255, 0) if name != "Unknown" else (255, 0, 0)
+                
+                # 박스 그리기
+                for thickness in range(3):
+                    draw.rectangle(
+                        [left - thickness, top - thickness, right + thickness, bottom + thickness],
+                        outline=color,
+                        width=1
+                    )
+                
+                # 이름 배경 박스
+                text_bbox = draw.textbbox((0, 0), name, font=self.font_small)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
+                
+                draw.rectangle(
+                    [left, bottom - text_height - 15, left + text_width + 20, bottom],
+                    fill=color
+                )
+                
+                # 한글 이름 텍스트
+                draw.text(
+                    (left + 10, bottom - text_height - 10),
+                    name,
+                    font=self.font_small,
+                    fill=(0, 0, 0)  # 검은색
+                )
+            
+            # 상태 정보 표시
+            info_text = f"얼굴: {len(previous_face_names)}명"
+            draw.text((10, 10), info_text, font=self.font_small, fill=(255, 255, 255))
+            
+            # PIL Image를 numpy 배열로 변환
+            frame = np.array(pil_image)
+            
+            # FPS 계산
+            if frame_count == 1:
+                fps_start_time = time.time()
+            
+            if frame_count % 30 == 0 and frame_count > 1:
+                fps = 30 / (time.time() - fps_start_time)
+                fps_start_time = time.time()
+                print(f"[INFO] FPS: {fps:.1f}, 인식된 얼굴: {len(previous_face_names)}명")
+            
+            # PIL Image로 변환 및 리사이즈
+            img = Image.fromarray(frame)
+            img = img.resize((960, 540), Image.Resampling.LANCZOS)
+            
+            # PhotoImage로 변환
+            photo = ImageTk.PhotoImage(image=img)
+            
+            # GUI 업데이트
+            try:
+                if self.is_running:
+                    self.video_label.imgtk = photo
+                    self.video_label.configure(image=photo, text="")
+            except Exception as e:
+                print(f"[ERROR] GUI 업데이트 오류: {e}")
+                break
+            
+            time.sleep(0.01)
         
         print("[INFO] 비디오 처리 종료")
+
