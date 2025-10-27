@@ -990,6 +990,17 @@ class RecognitionScreen(tk.Frame):
             messagebox.showerror("오류", f"카메라 {camera_index}를 열 수 없습니다.\n환경 설정에서 카메라를 확인하세요.")
             return
         
+        # 카메라 해상도 및 FPS 최적화 (Jetson Nano 포함)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.video_capture.set(cv2.CAP_PROP_FPS, 30)
+        
+        # 실제 설정된 값 확인
+        actual_width = int(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        actual_fps = int(self.video_capture.get(cv2.CAP_PROP_FPS))
+        print(f"[INFO] 카메라 해상도: {actual_width}x{actual_height} @ {actual_fps}FPS")
+        
         self.is_running = True
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
