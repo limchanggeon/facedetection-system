@@ -139,8 +139,9 @@ process_every_n_frames = 3
 smoothing_factor = 0.3
 ```
 
-## 🎮 Jetson 환경 설정
+## 🎮 플랫폼별 환경 설정
 
+### NVIDIA Jetson
 Jetson 플랫폼에서 실행하려면 **[JETSON_TUTORIAL.md](JETSON_TUTORIAL.md)**를 참조하세요.
 
 주요 내용:
@@ -148,6 +149,16 @@ Jetson 플랫폼에서 실행하려면 **[JETSON_TUTORIAL.md](JETSON_TUTORIAL.md
 - CSI 카메라 설정
 - 성능 최적화
 - 문제 해결
+
+### Windows (Intel i5 등)
+Windows 환경에서 실행하려면 **[WINDOWS_TUTORIAL.md](WINDOWS_TUTORIAL.md)**를 참조하세요.
+
+주요 내용:
+- Visual Studio Build Tools 설치
+- dlib 설치 가이드
+- 카메라 설정
+- 한글 폰트 설정
+- 성능 최적화
 
 ## 📊 성능
 
@@ -162,6 +173,11 @@ Jetson 플랫폼에서 실행하려면 **[JETSON_TUTORIAL.md](JETSON_TUTORIAL.md
 - **모델**: HOG
 
 ### Jetson Xavier NX
+- **FPS**: 20-25
+- **해상도**: 1056x594
+- **모델**: HOG
+
+### Windows PC (Intel i7, 16GB RAM)
 - **FPS**: 20-25
 - **해상도**: 1056x594
 - **모델**: HOG
